@@ -13,7 +13,7 @@ module connect_four
     input move_right,
     input move_left,
     input drop_piece,
-    output [1:0] board_out [0:ROWS-1][0:COLS-1],
+    output [1:0] boardout [0:ROWS-1][0:COLS-1],
     output logic [2:0] current_col,
     output logic [1:0] current_player,
     output logic game_over,
@@ -49,6 +49,7 @@ module connect_four
     localparam FLASH_COUNTER_MAX = 26'd50_000_000;
 
     logic [1:0] board [0:ROWS-1][0:COLS-1];
+    logic [1:0] board_out [0:ROWS-1][0:COLS-1];
 
     logic [2:0] drop_piece_sync;
     logic rising_drop_piece;
@@ -123,6 +124,8 @@ module connect_four
 
     logic [3:0] check_state;
     logic [3:0] check_state_next_final;
+
+    assign boardout = board_out;
 
     assign rising_drop_piece = drop_piece_sync[2] & ~drop_piece_sync[1]; // Active low
     assign rising_move_right = move_right_sync[2] & ~move_right_sync[1];

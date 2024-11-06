@@ -117,7 +117,7 @@ module connect_four_top (
         .move_right(move_right),
         .move_left(move_left),
         .drop_piece(drop_piece),
-        .board_out(board),
+        .boardout(board),
         .current_col(current_col),
         .current_player(current_player),
         .game_over(game_over),
