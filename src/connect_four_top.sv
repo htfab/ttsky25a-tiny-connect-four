@@ -158,9 +158,9 @@ module connect_four_top (
         vga_b = 2'b00;
 
         if (vga_active) begin
-            vga_r = EMPTY_COLOR_R
-            vga_g = EMPTY_COLOR_G
-            vga_b = EMPTY_COLOR_B
+            vga_r = EMPTY_COLOR_R;
+            vga_g = EMPTY_COLOR_G;
+            vga_b = EMPTY_COLOR_B;
 
             if (draw_board)
             begin
@@ -168,38 +168,38 @@ module connect_four_top (
                 begin
                     if (piece_color == PLAYER1_COLOR)
                     begin
-                        vga_r = PLAYER1_COLOR_R
-                        vga_g = PLAYER1_COLOR_G
-                        vga_b = PLAYER1_COLOR_B
+                        vga_r = PLAYER1_COLOR_R;
+                        vga_g = PLAYER1_COLOR_G;
+                        vga_b = PLAYER1_COLOR_B;
                     end
                     else if (piece_color == PLAYER2_COLOR)
                     begin
-                        vga_r = PLAYER2_COLOR_R
-                        vga_g = PLAYER2_COLOR_G
-                        vga_b = PLAYER2_COLOR_B
+                        vga_r = PLAYER2_COLOR_R;
+                        vga_g = PLAYER2_COLOR_G;
+                        vga_b = PLAYER2_COLOR_B;
                     end
                 end
                 else
                 begin
                     // If the current pixel is not inside the circle, it will use the background color
-                    vga_r = BOARD_COLOR_R
-                    vga_g = BOARD_COLOR_G
-                    vga_b = BOARD_COLOR_B
+                    vga_r = BOARD_COLOR_R;
+                    vga_g = BOARD_COLOR_G;
+                    vga_b = BOARD_COLOR_B;
                 end
             end
             else if (draw_circle_cursor)
             begin
                 if (player_1_turn)
                 begin
-                    vga_r = PLAYER1_COLOR_R
-                    vga_g = PLAYER1_COLOR_G
-                    vga_b = PLAYER1_COLOR_B
+                    vga_r = PLAYER1_COLOR_R;
+                    vga_g = PLAYER1_COLOR_G;
+                    vga_b = PLAYER1_COLOR_B;
                 end
                 else
                 begin
-                    vga_r = PLAYER2_COLOR_R
-                    vga_g = PLAYER2_COLOR_G
-                    vga_b = PLAYER2_COLOR_B
+                    vga_r = PLAYER2_COLOR_R;
+                    vga_g = PLAYER2_COLOR_G;
+                    vga_b = PLAYER2_COLOR_B;
                 end
             end
             // The else case for the background is not needed as it's set by default
