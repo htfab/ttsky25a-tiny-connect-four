@@ -94,7 +94,7 @@ module connect_four_top (
 
     // Game Instance
     connect_four game (
-        .clk(clk_50MHz),
+        .clk(clk_25MHz),
         .rst_n(rst_n),
         .move_right(move_right),
         .move_left(move_left),
