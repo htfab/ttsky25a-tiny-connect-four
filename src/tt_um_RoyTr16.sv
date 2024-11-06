@@ -52,7 +52,7 @@ module tt_um_RoyTr16 (
     .vga_hsync   (hsync),  // Horizontal sync
     .vga_vsync   (vsync),  // Vertical sync
     .vga_r       (red),    // 4-bit Red channel
-    .vga_g       (greed),  // 4-bit Green channel
+    .vga_g       (green),  // 4-bit Green channel
     .vga_b       (blue)    // 4-bit Blue channel
 );
 
