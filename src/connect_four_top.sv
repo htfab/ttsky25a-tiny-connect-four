@@ -1,5 +1,5 @@
 module connect_four_top (
-    input wire clk_50MHz,      // TODO: Change to 25MHz
+    input wire clk_50MHz,      // TODO: Change this to 25MHz
     input wire rst_n,
     input wire move_right,
     input wire move_left,
@@ -34,6 +34,10 @@ module connect_four_top (
     localparam EMPTY = 2'b00;
     localparam PLAYER1_COLOR = 2'b01;
     localparam PLAYER2_COLOR = 2'b10;
+
+    // New parameters for circle drawing
+    localparam CIRCLE_RADIUS = 10'd14; // Radius of the circle pieces
+    localparam CIRCLE_RADIUS_SQUARED = CIRCLE_RADIUS * CIRCLE_RADIUS;
 
     // Game state
     // 0: empty, 1: player 1, 2: player 2
@@ -78,7 +82,7 @@ module connect_four_top (
     assign player_1_turn = (current_player == PLAYER1_COLOR);
 
     // Generate 25MHz pixel clock
-    // TODO: Remove this when using 25MHz clock
+    // TODO: remove this when using 25MHz clock
     pll pll_inst (
         .inclk0(clk_50MHz),
         .c0(pixel_clk)
@@ -110,57 +114,84 @@ module connect_four_top (
     );
 
 
+    // Declare wires for calculated values
+    wire [9:0] cell_center_x, cell_center_y, cursor_center_x, cursor_center_y;
+    wire [19:0] dx_cell, dy_cell, distance_squared_cell;
+    wire [19:0] dx_cursor, dy_cursor, distance_squared_cursor;
+    wire cell_in_circle, cursor_in_circle, draw_circle_cursor;
+
+    // Calculate center positions
+    assign cell_center_x = BOARD_TOP_LEFT_X + col_idx * CELL_SIZE + CELL_SIZE/2;
+    assign cell_center_y = BOARD_TOP_LEFT_Y + row_idx_n * CELL_SIZE + CELL_SIZE/2;
+    assign cursor_center_x = BOARD_TOP_LEFT_X + current_col * CELL_SIZE + CELL_SIZE/2;
+    assign cursor_center_y = BOARD_TOP_LEFT_Y - CURSOR_OFFSET - CELL_SIZE/2;
+
+    // Calculate distances and check if inside circle
+    assign dx_cell = h_count - cell_center_x;
+    assign dy_cell = v_count - cell_center_y;
+    assign distance_squared_cell = dx_cell * dx_cell + dy_cell * dy_cell;
+    assign cell_in_circle = (distance_squared_cell <= CIRCLE_RADIUS_SQUARED);
+
+    assign dx_cursor = h_count - cursor_center_x;
+    assign dy_cursor = v_count - cursor_center_y;
+    assign distance_squared_cursor = dx_cursor * dx_cursor + dy_cursor * dy_cursor;
+    assign cursor_in_circle = (distance_squared_cursor <= CIRCLE_RADIUS_SQUARED);
+    assign draw_circle_cursor = (draw_cursor & cursor_in_circle & ~game_over);
+
     // VGA output
-    always_comb begin
+    always_comb
+    begin
+        // Default background color (board color)
         vga_r = 4'h0;
         vga_g = 4'h0;
         vga_b = 4'h0;
-        if (vga_active)
-        begin
-            // Draw the board
+
+        if (vga_active) begin
+            vga_r = 4'h8;
+            vga_g = 4'hf;
+            vga_b = 4'h8;
+
             if (draw_board)
             begin
-                if (piece_color == PLAYER1_COLOR)
+                if (cell_in_circle)
                 begin
-                    vga_r = 4'hf;
-                    vga_g = 4'hf;
-                    vga_b = 4'h0;
-                end
-                else if (piece_color == PLAYER2_COLOR)
-                begin
-                    vga_r = 4'hf;
-                    vga_g = 4'h0;
-                    vga_b = 4'h0;
+                    if (piece_color == PLAYER1_COLOR)
+                    begin
+                        vga_r = 4'hf;
+                        vga_g = 4'hf;
+                        vga_b = 4'h0; // Yellow for Player 1
+                    end
+                    else if (piece_color == PLAYER2_COLOR)
+                    begin
+                        vga_r = 4'hf;
+                        vga_g = 4'h0;
+                        vga_b = 4'h0; // Red for Player 2
+                    end
                 end
                 else
                 begin
+                    // If the current pixel is not inside the circle, it will use the background color
                     vga_r = 4'h0;
                     vga_g = 4'h0;
                     vga_b = 4'hf;
                 end
             end
-            else
-            if (draw_cursor)
+            else if (draw_circle_cursor)
             begin
                 if (player_1_turn)
                 begin
                     vga_r = 4'hf;
                     vga_g = 4'hf;
-                    vga_b = 4'h0;
+                    vga_b = 4'h0; // Yellow for Player 1
                 end
                 else
                 begin
                     vga_r = 4'hf;
                     vga_g = 4'h0;
-                    vga_b = 4'h0;
+                    vga_b = 4'h0; // Red for Player 2
                 end
             end
-            else
-            begin
-                vga_r = 4'h8;
-                vga_g = 4'hf;
-                vga_b = 4'h8;
-            end
+            // The else case for the background is not needed as it's set by default
         end
     end
 

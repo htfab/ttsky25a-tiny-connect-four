@@ -8,16 +8,16 @@ module connect_four
     parameter LAST_ROW = 3'd7
 )
 (
-    input wire clk,
-    input wire rst_n,
-    input wire move_right,
-    input wire move_left,
-    input wire drop_piece,
-    output reg [1:0] board_out [ROWS-1:0][COLS-1:0],
-    output reg [2:0] current_col,
-    output reg [1:0] current_player,
-    output reg game_over,
-    output reg [1:0] winner
+    input clk,
+    input rst_n,
+    input move_right,
+    input move_left,
+    input drop_piece,
+    output logic [1:0] board_out [ROWS-1:0][COLS-1:0],
+    output logic [2:0] current_col,
+    output logic [1:0] current_player,
+    output logic game_over,
+    output logic [1:0] winner
 );
 
     localparam EMPTY = 2'b00;
@@ -46,7 +46,9 @@ module connect_four
     localparam ST_CHECKING_DONE = 4'b1110;
     localparam ST_VICTORY = 4'b1111;
 
-    reg [1:0] board [ROWS-1:0][COLS-1:0];
+    localparam FLASH_COUNTER_MAX = 26'd50_000_000;
+
+    logic [1:0] board [ROWS-1:0][COLS-1:0];
 
     logic [2:0] drop_piece_sync;
     logic rising_drop_piece;
@@ -96,22 +98,31 @@ module connect_four
     logic result_diag_left_down_3;
     logic result_diag_left_down_4;
 
+    logic piece_can_win;
+
+    logic winning_down;
+    logic winning_row_1;
+    logic winning_row_2;
+    logic winning_row_3;
+    logic winning_row_4;
+    logic winning_diag_right_up_1;
+    logic winning_diag_right_up_2;
+    logic winning_diag_right_up_3;
+    logic winning_diag_right_up_4;
+    logic winning_diag_left_down_1;
+    logic winning_diag_left_down_2;
+    logic winning_diag_left_down_3;
+    logic winning_diag_left_down_4;
+
+    logic [25:0] flash_counter;
+    logic toggle_flash;
+    logic show_winning_pieces;
+    logic hide_winning_pieces;
+    logic found_winning_pieces;
+    logic winning_pieces [ROWS-1:0][COLS-1:0];
+
     logic [3:0] check_state;
-
-    logic [3:0] next_down;
-    logic [3:0] next_row_1;
-    logic [3:0] next_row_2;
-    logic [3:0] next_row_3;
-    logic [3:0] next_row_4;
-    logic [3:0] next_diag_right_up_1;
-    logic [3:0] next_diag_right_up_2;
-    logic [3:0] next_diag_right_up_3;
-    logic [3:0] next_diag_right_up_4;
-    logic [3:0] next_diag_left_down_1;
-    logic [3:0] next_diag_left_down_2;
-    logic [3:0] next_diag_left_down_3;
-    logic [3:0] next_diag_left_down_4;
-
+    logic [3:0] check_state_next_final;
 
     assign rising_drop_piece = drop_piece_sync[2] & ~drop_piece_sync[1]; // Active low
     assign rising_move_right = move_right_sync[2] & ~move_right_sync[1];
@@ -127,6 +138,8 @@ module connect_four
     assign current_row = row_to_drop[ROW_BITS-1:0];
     assign attempted_drop = (current_state == ST_ADDING_PIECE);
     assign drop_allowed = (row_to_drop < ROWS);
+
+    assign check_state_next_final = (game_over) ? ST_VICTORY : ST_CHECKING_DONE;
 
     assign check_down = (current_row >= 3);
     assign check_row_1 = (current_col >= 3);
@@ -220,21 +233,21 @@ module connect_four
                                      (board[current_row][current_col]     == current_player) &
                                      check_diag_left_down_4;
 
+    assign winning_down = result_down & check_down;
+    assign winning_row_1 = result_row_1 & check_row_1;
+    assign winning_row_2 = result_row_2 & check_row_2;
+    assign winning_row_3 = result_row_3 & check_row_3;
+    assign winning_row_4 = result_row_4 & check_row_4;
+    assign winning_diag_right_up_1 = result_diag_right_up_1 & check_diag_right_up_1;
+    assign winning_diag_right_up_2 = result_diag_right_up_2 & check_diag_right_up_2;
+    assign winning_diag_right_up_3 = result_diag_right_up_3 & check_diag_right_up_3;
+    assign winning_diag_right_up_4 = result_diag_right_up_4 & check_diag_right_up_4;
+    assign winning_diag_left_down_1 = result_diag_left_down_1 & check_diag_left_down_1;
+    assign winning_diag_left_down_2 = result_diag_left_down_2 & check_diag_left_down_2;
+    assign winning_diag_left_down_3 = result_diag_left_down_3 & check_diag_left_down_3;
+    assign winning_diag_left_down_4 = result_diag_left_down_4 & check_diag_left_down_4;
 
-    assign next_down = result_down? ST_VICTORY : ST_CHECKING_ROW_1;
-    assign next_row_1 = result_row_1? ST_VICTORY : ST_CHECKING_ROW_2;
-    assign next_row_2 = result_row_2? ST_VICTORY : ST_CHECKING_ROW_3;
-    assign next_row_3 = result_row_3? ST_VICTORY : ST_CHECKING_ROW_4;
-    assign next_row_4 = result_row_4? ST_VICTORY : ST_CHECKING_DIAG_RIGHT_UP_1;
-    assign next_diag_right_up_1 = result_diag_right_up_1? ST_VICTORY : ST_CHECKING_DIAG_RIGHT_UP_2;
-    assign next_diag_right_up_2 = result_diag_right_up_2? ST_VICTORY : ST_CHECKING_DIAG_RIGHT_UP_3;
-    assign next_diag_right_up_3 = result_diag_right_up_3? ST_VICTORY : ST_CHECKING_DIAG_RIGHT_UP_4;
-    assign next_diag_right_up_4 = result_diag_right_up_4? ST_VICTORY : ST_CHECKING_DIAG_LEFT_DOWN_1;
-    assign next_diag_left_down_1 = result_diag_left_down_1? ST_VICTORY : ST_CHECKING_DIAG_LEFT_DOWN_2;
-    assign next_diag_left_down_2 = result_diag_left_down_2? ST_VICTORY : ST_CHECKING_DIAG_LEFT_DOWN_3;
-    assign next_diag_left_down_3 = result_diag_left_down_3? ST_VICTORY : ST_CHECKING_DIAG_LEFT_DOWN_4;
-    assign next_diag_left_down_4 = result_diag_left_down_4? ST_VICTORY : ST_CHECKING_DONE;
-
+    assign hide_winning_pieces = game_over & ~show_winning_pieces;
 
     // Synchronizers to detect rising edge of input from user
     always_ff @(posedge clk or negedge rst_n)
@@ -325,44 +338,6 @@ module connect_four
       end
     end
 
-    // Drop the piece
-    always_ff @(posedge clk or negedge rst_n)
-    begin
-      if (!rst_n)
-      begin
-        // Initialize the board (TODO: Make this more efficient)
-        for (int i = 0; i < ROWS; i++)
-        begin
-          for (int j = 0; j < COLS; j++)
-          begin
-              board[i][j] <= 2'b00;
-          end
-        end
-      end
-      else
-      begin
-        if (attempted_drop)
-        begin
-          if (drop_allowed)
-          begin
-            board[current_row][current_col] <= current_player;
-          end
-        end
-      end
-    end
-
-    // Output the board state
-    always_comb
-	  begin
-        for (int row = 0; row < ROWS; row++)
-		    begin
-            for (int col = 0; col < COLS; col++)
-            begin
-                board_out[row][col] = board[row][col];
-            end
-        end
-    end
-
     // Check for victory
     // Based on the drop location, check for a win in the relevant directions
     // Every clock take 4 squares and check if they are the same player
@@ -381,9 +356,28 @@ module connect_four
         begin
           column_counters[i] <= 4'b0000;
         end
+        // Initialize the board (TODO: Make this more efficient)
+        for (int i = 0; i < ROWS; i++)
+        begin
+          for (int j = 0; j < COLS; j++)
+          begin
+              board[i][j] <= 2'b00;
+              winning_pieces[i][j] <= 1'b0;
+          end
+        end
       end
       else
-      if (current_state == ST_CHECKING_VICTORY)
+      if (current_state == ST_ADDING_PIECE)
+      begin
+        if (attempted_drop)
+        begin
+          if (drop_allowed)
+          begin
+            board[current_row][current_col] <= current_player;
+          end
+        end
+      end
+      else if (current_state == ST_CHECKING_VICTORY)
       begin
         case (check_state)
           ST_NOT_CHECKING:
@@ -392,98 +386,163 @@ module connect_four
           end
           ST_CHECKING_DOWN:
           begin
-            if (check_down)
-              check_state <= next_down;
-            else
-              check_state <= ST_CHECKING_ROW_1;
+            check_state <= ST_CHECKING_ROW_1;
+            if (winning_down)
+            begin
+              game_over <= 1'b1;
+              winning_pieces[current_row][current_col] <= 1'b1;
+              winning_pieces[current_row-1][current_col] <= 1'b1;
+              winning_pieces[current_row-2][current_col] <= 1'b1;
+              winning_pieces[current_row-3][current_col] <= 1'b1;
+            end
           end
           ST_CHECKING_ROW_1:
           begin
-            if (check_row_1)
-              check_state <= next_row_1;
-            else
-              check_state <= ST_CHECKING_ROW_2;
+            check_state <= ST_CHECKING_ROW_2;
+            if (winning_row_1)
+            begin
+              game_over <= 1'b1;
+              winning_pieces[current_row][current_col] <= 1'b1;
+              winning_pieces[current_row][current_col-1] <= 1'b1;
+              winning_pieces[current_row][current_col-2] <= 1'b1;
+              winning_pieces[current_row][current_col-3] <= 1'b1;
+            end
           end
           ST_CHECKING_ROW_2:
           begin
-            if (check_row_2)
-              check_state <= next_row_2;
-            else
-              check_state <= ST_CHECKING_ROW_3;
+            check_state <= ST_CHECKING_ROW_3;
+            if (winning_row_2)
+            begin
+              game_over <= 1'b1;
+              winning_pieces[current_row][current_col+1] <= 1'b1;
+              winning_pieces[current_row][current_col] <= 1'b1;
+              winning_pieces[current_row][current_col-1] <= 1'b1;
+              winning_pieces[current_row][current_col-2] <= 1'b1;
+            end
           end
           ST_CHECKING_ROW_3:
           begin
-            if (check_row_3)
-              check_state <= next_row_3;
-            else
-              check_state <= ST_CHECKING_ROW_4;
+            check_state <= ST_CHECKING_ROW_4;
+            if (winning_row_3)
+            begin
+              game_over <= 1'b1;
+              winning_pieces[current_row][current_col+2] <= 1'b1;
+              winning_pieces[current_row][current_col+1] <= 1'b1;
+              winning_pieces[current_row][current_col] <= 1'b1;
+              winning_pieces[current_row][current_col-1] <= 1'b1;
+            end
           end
           ST_CHECKING_ROW_4:
           begin
-            if (check_row_4)
-              check_state <= next_row_4;
-            else
-              check_state <= ST_CHECKING_DIAG_RIGHT_UP_1;
+            check_state <= ST_CHECKING_DIAG_RIGHT_UP_1;
+            if (winning_row_4)
+            begin
+              game_over <= 1'b1;
+              winning_pieces[current_row][current_col+3] <= 1'b1;
+              winning_pieces[current_row][current_col+2] <= 1'b1;
+              winning_pieces[current_row][current_col+1] <= 1'b1;
+              winning_pieces[current_row][current_col] <= 1'b1;
+            end
           end
           ST_CHECKING_DIAG_RIGHT_UP_1:
           begin
-            if (check_diag_right_up_1)
-              check_state <= next_diag_right_up_1;
-            else
-              check_state <= ST_CHECKING_DIAG_RIGHT_UP_2;
+            check_state <= ST_CHECKING_DIAG_RIGHT_UP_2;
+            if (winning_diag_right_up_1)
+            begin
+              game_over <= 1'b1;
+              winning_pieces[current_row][current_col] <= 1'b1;
+              winning_pieces[current_row-1][current_col-1] <= 1'b1;
+              winning_pieces[current_row-2][current_col-2] <= 1'b1;
+              winning_pieces[current_row-3][current_col-3] <= 1'b1;
+            end
           end
           ST_CHECKING_DIAG_RIGHT_UP_2:
           begin
-            if (check_diag_right_up_2)
-              check_state <= next_diag_right_up_2;
-            else
-              check_state <= ST_CHECKING_DIAG_RIGHT_UP_3;
+            check_state <= ST_CHECKING_DIAG_RIGHT_UP_3;
+            if (winning_diag_right_up_2)
+            begin
+              game_over <= 1'b1;
+              winning_pieces[current_row+1][current_col+1] <= 1'b1;
+              winning_pieces[current_row][current_col] <= 1'b1;
+              winning_pieces[current_row-1][current_col-1] <= 1'b1;
+              winning_pieces[current_row-2][current_col-2] <= 1'b1;
+            end
           end
           ST_CHECKING_DIAG_RIGHT_UP_3:
           begin
-            if (check_diag_right_up_3)
-              check_state <= next_diag_right_up_3;
-            else
-              check_state <= ST_CHECKING_DIAG_RIGHT_UP_4;
+            check_state <= ST_CHECKING_DIAG_RIGHT_UP_4;
+            if (winning_diag_right_up_3)
+            begin
+              game_over <= 1'b1;
+              winning_pieces[current_row+2][current_col+2] <= 1'b1;
+              winning_pieces[current_row+1][current_col+1] <= 1'b1;
+              winning_pieces[current_row][current_col] <= 1'b1;
+              winning_pieces[current_row-1][current_col-1] <= 1'b1;
+            end
           end
           ST_CHECKING_DIAG_RIGHT_UP_4:
           begin
-            if (check_diag_right_up_4)
-              check_state <= next_diag_right_up_4;
-            else
-              check_state <= ST_CHECKING_DIAG_LEFT_DOWN_1;
+            check_state <= ST_CHECKING_DIAG_LEFT_DOWN_1;
+            if (winning_diag_right_up_4)
+            begin
+              game_over <= 1'b1;
+              winning_pieces[current_row+3][current_col+3] <= 1'b1;
+              winning_pieces[current_row+2][current_col+2] <= 1'b1;
+              winning_pieces[current_row+1][current_col+1] <= 1'b1;
+              winning_pieces[current_row][current_col] <= 1'b1;
+            end
           end
           ST_CHECKING_DIAG_LEFT_DOWN_1:
           begin
-            if (check_diag_left_down_1)
-              check_state <= next_diag_left_down_1;
-            else
-              check_state <= ST_CHECKING_DIAG_LEFT_DOWN_2;
+            check_state <= ST_CHECKING_DIAG_LEFT_DOWN_2;
+            if (winning_diag_left_down_1)
+            begin
+              game_over <= 1'b1;
+              winning_pieces[current_row][current_col] <= 1'b1;
+              winning_pieces[current_row+1][current_col-1] <= 1'b1;
+              winning_pieces[current_row+2][current_col-2] <= 1'b1;
+              winning_pieces[current_row+3][current_col-3] <= 1'b1;
+            end
           end
           ST_CHECKING_DIAG_LEFT_DOWN_2:
           begin
-            if (check_diag_left_down_2)
-              check_state <= next_diag_left_down_2;
-            else
-              check_state <= ST_CHECKING_DIAG_LEFT_DOWN_3;
+            check_state <= ST_CHECKING_DIAG_LEFT_DOWN_3;
+            if (winning_diag_left_down_2)
+            begin
+              game_over <= 1'b1;
+              winning_pieces[current_row-1][current_col+1] <= 1'b1;
+              winning_pieces[current_row][current_col] <= 1'b1;
+              winning_pieces[current_row+1][current_col-1] <= 1'b1;
+              winning_pieces[current_row+2][current_col-2] <= 1'b1;
+            end
           end
           ST_CHECKING_DIAG_LEFT_DOWN_3:
           begin
-            if (check_diag_left_down_3)
-              check_state <= next_diag_left_down_3;
-            else
-              check_state <= ST_CHECKING_DIAG_LEFT_DOWN_4;
+            check_state <= ST_CHECKING_DIAG_LEFT_DOWN_4;
+            if (winning_diag_left_down_3)
+            begin
+              game_over <= 1'b1;
+              winning_pieces[current_row-2][current_col+2] <= 1'b1;
+              winning_pieces[current_row-1][current_col+1] <= 1'b1;
+              winning_pieces[current_row][current_col] <= 1'b1;
+              winning_pieces[current_row+1][current_col-1] <= 1'b1;
+            end
           end
           ST_CHECKING_DIAG_LEFT_DOWN_4:
           begin
-            if (check_diag_left_down_4)
-              check_state <= next_diag_left_down_4;
-            else
-              check_state <= ST_CHECKING_DONE;
+            check_state <= check_state_next_final;
+
+            if (winning_diag_left_down_4)
+            begin
+              game_over <= 1'b1;
+              winning_pieces[current_row-3][current_col+3] <= 1'b1;
+              winning_pieces[current_row-2][current_col+2] <= 1'b1;
+              winning_pieces[current_row-1][current_col+1] <= 1'b1;
+              winning_pieces[current_row][current_col] <= 1'b1;
+            end
           end
           ST_VICTORY:
           begin
-            game_over <= 1'b1;
             winner <= current_player;
             check_state <= ST_CHECKING_DONE;
           end
@@ -501,5 +560,43 @@ module connect_four
       end
     end
 
+    // Flashing counter
+    always_ff @(posedge clk or negedge rst_n)
+    begin
+        if (~rst_n)
+        begin
+            flash_counter <= 26'd0;
+            show_winning_pieces <= 1'b1;
+        end
+        else if (game_over)
+        begin
+          if (flash_counter == FLASH_COUNTER_MAX)
+          begin
+              flash_counter <= 26'd0;
+              show_winning_pieces <= ~show_winning_pieces;
+          end
+          else
+          begin
+              flash_counter <= flash_counter + 26'd1;
+          end
+        end
+    end
+
+
+    // Output the board state
+    always_comb
+	  begin
+        for (int row = 0; row < ROWS; row++)
+		    begin
+            for (int col = 0; col < COLS; col++)
+            begin
+                board_out[row][col] = board[row][col];
+                if (winning_pieces[row][col])
+                begin
+                    board_out[row][col] = (show_winning_pieces) ? board[row][col] : EMPTY;
+                end
+            end
+        end
+    end
 
 endmodule
