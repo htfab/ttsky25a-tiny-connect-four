@@ -6,9 +6,9 @@ module connect_four_top (
     input wire drop_piece,
     output logic vga_hsync,    // Horizontal sync
     output logic vga_vsync,    // Vertical sync
-    output logic [3:0] vga_r,  // 4-bit Red channel
-    output logic [3:0] vga_g,  // 4-bit Green channel
-    output logic [3:0] vga_b   // 4-bit Blue channel
+    output logic [1:0] vga_r,  // 2-bit Red channel
+    output logic [1:0] vga_g,  // 2-bit Green channel
+    output logic [1:0] vga_b   // 2-bit Blue channel
 );
 
     // VGA timing parameters (same as in top module)
@@ -38,6 +38,24 @@ module connect_four_top (
     // New parameters for circle drawing
     localparam CIRCLE_RADIUS = 10'd14; // Radius of the circle pieces
     localparam CIRCLE_RADIUS_SQUARED = CIRCLE_RADIUS * CIRCLE_RADIUS;
+
+    // VGA Colors
+    // Background color - Green
+    localparam EMPTY_COLOR_R = 2'b01;
+    localparam EMPTY_COLOR_G = 2'b11;
+    localparam EMPTY_COLOR_B = 2'b01;
+    // Board color - Blue
+    localparam BOARD_COLOR_R = 2'b00;
+    localparam BOARD_COLOR_G = 2'b00;
+    localparam BOARD_COLOR_B = 2'b11;
+    // Player 1 color - Yellow
+    localparam PLAYER1_COLOR_R = 2'b11;
+    localparam PLAYER1_COLOR_G = 2'b11;
+    localparam PLAYER1_COLOR_B = 2'b00;
+    // Player 2 color - Red
+    localparam PLAYER2_COLOR_R = 2'b11;
+    localparam PLAYER2_COLOR_G = 2'b00;
+    localparam PLAYER2_COLOR_B = 2'b00;
 
     // Game state
     // 0: empty, 1: player 1, 2: player 2
@@ -134,15 +152,15 @@ module connect_four_top (
     // VGA output
     always_comb
     begin
-        // Default background color (board color)
-        vga_r = 4'h0;
-        vga_g = 4'h0;
-        vga_b = 4'h0;
+        // No color when not active
+        vga_r = 2'b00;
+        vga_g = 2'b00;
+        vga_b = 2'b00;
 
         if (vga_active) begin
-            vga_r = 4'h8;
-            vga_g = 4'hf;
-            vga_b = 4'h8;
+            vga_r = EMPTY_COLOR_R
+            vga_g = EMPTY_COLOR_G
+            vga_b = EMPTY_COLOR_B
 
             if (draw_board)
             begin
@@ -150,38 +168,38 @@ module connect_four_top (
                 begin
                     if (piece_color == PLAYER1_COLOR)
                     begin
-                        vga_r = 4'hf;
-                        vga_g = 4'hf;
-                        vga_b = 4'h0; // Yellow for Player 1
+                        vga_r = PLAYER1_COLOR_R
+                        vga_g = PLAYER1_COLOR_G
+                        vga_b = PLAYER1_COLOR_B
                     end
                     else if (piece_color == PLAYER2_COLOR)
                     begin
-                        vga_r = 4'hf;
-                        vga_g = 4'h0;
-                        vga_b = 4'h0; // Red for Player 2
+                        vga_r = PLAYER2_COLOR_R
+                        vga_g = PLAYER2_COLOR_G
+                        vga_b = PLAYER2_COLOR_B
                     end
                 end
                 else
                 begin
                     // If the current pixel is not inside the circle, it will use the background color
-                    vga_r = 4'h0;
-                    vga_g = 4'h0;
-                    vga_b = 4'hf;
+                    vga_r = BOARD_COLOR_R
+                    vga_g = BOARD_COLOR_G
+                    vga_b = BOARD_COLOR_B
                 end
             end
             else if (draw_circle_cursor)
             begin
                 if (player_1_turn)
                 begin
-                    vga_r = 4'hf;
-                    vga_g = 4'hf;
-                    vga_b = 4'h0; // Yellow for Player 1
+                    vga_r = PLAYER1_COLOR_R
+                    vga_g = PLAYER1_COLOR_G
+                    vga_b = PLAYER1_COLOR_B
                 end
                 else
                 begin
-                    vga_r = 4'hf;
-                    vga_g = 4'h0;
-                    vga_b = 4'h0; // Red for Player 2
+                    vga_r = PLAYER2_COLOR_R
+                    vga_g = PLAYER2_COLOR_G
+                    vga_b = PLAYER2_COLOR_B
                 end
             end
             // The else case for the background is not needed as it's set by default
