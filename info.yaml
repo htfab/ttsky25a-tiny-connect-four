@@ -26,9 +26,9 @@ project:
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 pinout:
   # Inputs
-  ui[0]: ""
-  ui[1]: ""
-  ui[2]: ""
+  ui[0]: "Key Drop Piece"
+  ui[1]: "Key Move Right"
+  ui[2]: "Key Move Left"
   ui[3]: ""
   ui[4]: ""
   ui[5]: ""
@@ -36,14 +36,14 @@ pinout:
   ui[7]: ""
 
   # Outputs
-  uo[0]: ""
-  uo[1]: ""
-  uo[2]: ""
-  uo[3]: ""
-  uo[4]: ""
-  uo[5]: ""
-  uo[6]: ""
-  uo[7]: ""
+  uo[0]: "VGA red [1]"
+  uo[1]: "VGA green [1]"
+  uo[2]: "VGA blue [1]"
+  uo[3]: "VGA vsync"
+  uo[4]: "VGA red [0]"
+  uo[5]: "VGA green [0]"
+  uo[6]: "VGA blue [0]"
+  uo[7]: "VGA hsync"
 
   # Bidirectional pins
   uio[0]: ""
