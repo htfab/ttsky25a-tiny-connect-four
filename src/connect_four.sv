@@ -13,7 +13,7 @@ module connect_four
     input move_right,
     input move_left,
     input drop_piece,
-    output logic [1:0] board_out [0:ROWS-1][0:COLS-1],
+    output logic [1:0] board_out [0:ROWS*COLS-1], // Flattened 2D array to 1D vector,
     output logic [2:0] current_col,
     output logic [1:0] current_player,
     output logic game_over,
@@ -117,7 +117,6 @@ module connect_four
     logic [25:0] flash_counter;
     logic toggle_flash;
     logic show_winning_pieces;
-    logic hide_winning_pieces;
     logic found_winning_pieces;
     logic winning_pieces [0:ROWS-1][0:COLS-1];
 
@@ -246,8 +245,6 @@ module connect_four
     assign winning_diag_left_down_2 = result_diag_left_down_2 & check_diag_left_down_2;
     assign winning_diag_left_down_3 = result_diag_left_down_3 & check_diag_left_down_3;
     assign winning_diag_left_down_4 = result_diag_left_down_4 & check_diag_left_down_4;
-
-    assign hide_winning_pieces = game_over & ~show_winning_pieces;
 
     // Synchronizers to detect rising edge of input from user
     always_ff @(posedge clk or negedge rst_n)
@@ -590,10 +587,10 @@ module connect_four
 		    begin
             for (int col = 0; col < COLS; col++)
             begin
-                board_out[row][col] = board[row][col];
+                board_out[row * COLS + col] = board[row][col];
                 if (winning_pieces[row][col])
                 begin
-                    board_out[row][col] = (show_winning_pieces) ? board[row][col] : EMPTY;
+                    board_out[row * COLS + col] = (show_winning_pieces) ? board[row][col] : EMPTY;
                 end
             end
         end

@@ -59,7 +59,7 @@ module connect_four_top (
 
     // Game state
     // 0: empty, 1: player 1, 2: player 2
-    logic [1:0] board [0:ROWS-1][0:COLS-1];
+    logic [1:0] board [0:ROWS*COLS-1];
     logic [2:0] current_col;
     // 01: player 1, 10: player 2
     logic [1:0] current_player;
@@ -95,7 +95,7 @@ module connect_four_top (
     assign row_idx_n = ((v_count - BOARD_TOP_LEFT_Y) >> 10'd5);
     assign col_idx = col_idx_n[2:0];
     assign row_idx = 3'h7 - row_idx_n[2:0];
-    assign piece_color = board[row_idx][col_idx];
+    assign piece_color = board[row_idx * COLS + col_idx];
     assign player_1_turn = (current_player == PLAYER1_COLOR);
 
 
