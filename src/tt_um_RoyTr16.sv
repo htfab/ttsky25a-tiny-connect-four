@@ -39,9 +39,9 @@ module tt_um_RoyTr16 (
   assign uo_out [6] = blue  [0];
   assign uo_out [7] = hsync;
 
-  assign ui_in [0] = drop_piece;
-  assign ui_in [1] = move_right;
-  assign ui_in [2] = move_left;
+  assign drop_piece = ui_in [0];
+  assign move_right = ui_in [1];
+  assign move_left  = ui_in [2];
 
   connect_four_top game_inst (
     .clk_25MHz   (clk),
