@@ -13,11 +13,11 @@ module connect_four
     input move_right,
     input move_left,
     input drop_piece,
-    output reg [1:0] board_out [0:ROWS-1][0:COLS-1],
-    output logic [2:0] current_col,
-    output logic [1:0] current_player,
-    output logic game_over,
-    output logic [1:0] winner
+    output [1:0] board_out [0:ROWS-1][0:COLS-1],
+    output [2:0] current_col,
+    output [1:0] current_player,
+    output game_over,
+    output [1:0] winner
 );
 
     localparam EMPTY = 2'b00;
