@@ -59,7 +59,7 @@ module connect_four_top (
 
     // Game state
     // 0: empty, 1: player 1, 2: player 2
-    logic [1:0] board [ROWS-1:0][COLS-1:0];
+    logic [1:0] board [0:ROWS-1][0:COLS-1];
     logic [2:0] current_col;
     // 01: player 1, 10: player 2
     logic [1:0] current_player;
