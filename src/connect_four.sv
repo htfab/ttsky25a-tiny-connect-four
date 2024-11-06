@@ -13,7 +13,7 @@ module connect_four
     input move_right,
     input move_left,
     input drop_piece,
-    output logic [1:0] board_out [0:ROWS-1][0:COLS-1],
+    output reg [1:0] board_out [0:ROWS-1][0:COLS-1],
     output logic [2:0] current_col,
     output logic [1:0] current_player,
     output logic game_over,
