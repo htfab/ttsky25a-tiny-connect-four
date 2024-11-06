@@ -117,11 +117,11 @@ module connect_four_top (
         .move_right(move_right),
         .move_left(move_left),
         .drop_piece(drop_piece),
-        .boardout(board),
-        .current_col(current_col),
-        .current_player(current_player),
-        .game_over(game_over),
-        .winner(winner)
+        .port_board_out(board),
+        .port_current_col(current_col),
+        .port_current_player(current_player),
+        .port_game_over(game_over),
+        .port_winner(winner)
     );
 
 
