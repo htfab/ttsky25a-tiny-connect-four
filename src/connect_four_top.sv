@@ -1,5 +1,5 @@
 module connect_four_top (
-    input wire clk_50MHz,      // TODO: Change this to 25MHz
+    input wire clk_25MHz,
     input wire rst_n,
     input wire move_right,
     input wire move_left,
@@ -51,7 +51,6 @@ module connect_four_top (
     logic [1:0] winner;
 
     // VGA signals
-    logic pixel_clk;
     logic [9:0] h_count;
     logic [9:0] v_count;
 
@@ -81,16 +80,10 @@ module connect_four_top (
     assign piece_color = board[row_idx][col_idx];
     assign player_1_turn = (current_player == PLAYER1_COLOR);
 
-    // Generate 25MHz pixel clock
-    // TODO: remove this when using 25MHz clock
-    pll pll_inst (
-        .inclk0(clk_50MHz),
-        .c0(pixel_clk)
-    );
 
     // VGA controller instance
     vga_controller vga_ctrl (
-        .pixel_clk(pixel_clk),
+        .pixel_clk(clk_25MHz),
         .rst_n(rst_n),
         .hsync(vga_hsync),
         .vsync(vga_vsync),
