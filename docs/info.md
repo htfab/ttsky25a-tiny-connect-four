@@ -17,4 +17,9 @@ Explain how to use your project
 
 ## External hardware
 
-List external hardware used in your project (e.g. PMOD, LED display, etc), if any
+3 Keys are needed for:
+1. Dropping pieces
+2. Moving right
+3. Moving left
+
+Additionally a VGA module is required to connect the board to an external display.
