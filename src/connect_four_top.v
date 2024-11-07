@@ -10,6 +10,7 @@ module connect_four_top (
 	vga_g,
 	vga_b
 );
+
 	reg _sv2v_0;
 	input wire clk_25MHz;
 	input wire rst_n;
@@ -21,6 +22,7 @@ module connect_four_top (
 	output reg [1:0] vga_r;
 	output reg [1:0] vga_g;
 	output reg [1:0] vga_b;
+
 	localparam H_ACTIVE = 640;
 	localparam H_FRONT_PORCH = 16;
 	localparam H_SYNC = 96;
@@ -31,17 +33,22 @@ module connect_four_top (
 	localparam V_SYNC = 2;
 	localparam V_BACK_PORCH = 33;
 	localparam V_TOTAL = 525;
+
 	localparam ROWS = 8;
 	localparam COLS = 8;
+
 	localparam CELL_SIZE = 10'd32;
 	localparam BOARD_TOP_LEFT_X = 10'd192;
 	localparam BOARD_TOP_LEFT_Y = 10'd112;
 	localparam CURSOR_OFFSET = 10'd16;
+
 	localparam EMPTY = 2'b00;
 	localparam PLAYER1_COLOR = 2'b01;
 	localparam PLAYER2_COLOR = 2'b10;
+
 	localparam CIRCLE_RADIUS = 10'd14;
 	localparam CIRCLE_RADIUS_SQUARED = CIRCLE_RADIUS * CIRCLE_RADIUS;
+
 	localparam EMPTY_COLOR_R = 2'b01;
 	localparam EMPTY_COLOR_G = 2'b11;
 	localparam EMPTY_COLOR_B = 2'b01;
@@ -54,6 +61,7 @@ module connect_four_top (
 	localparam PLAYER2_COLOR_R = 2'b11;
 	localparam PLAYER2_COLOR_G = 2'b00;
 	localparam PLAYER2_COLOR_B = 2'b00;
+
 	wire [127:0] board;
 	wire [2:0] current_col;
 	wire [1:0] current_player;
@@ -70,6 +78,7 @@ module connect_four_top (
 	wire [2:0] row_idx;
 	wire [1:0] piece_color;
 	wire player_1_turn;
+
 	assign draw_board = (((h_count >= BOARD_TOP_LEFT_X) & (h_count < (BOARD_TOP_LEFT_X + (COLS * CELL_SIZE)))) & (v_count >= BOARD_TOP_LEFT_Y)) & (v_count < (BOARD_TOP_LEFT_Y + (ROWS * CELL_SIZE)));
 	assign draw_cursor = ((((h_count >= BOARD_TOP_LEFT_X) & (h_count < (BOARD_TOP_LEFT_X + (COLS * CELL_SIZE)))) & (v_count >= ((BOARD_TOP_LEFT_Y - CURSOR_OFFSET) - CELL_SIZE))) & (v_count < (BOARD_TOP_LEFT_Y - CURSOR_OFFSET))) & (current_col == col_idx);
 	assign vga_active = (h_count < H_ACTIVE) & (v_count < V_ACTIVE);
@@ -79,6 +88,9 @@ module connect_four_top (
 	assign row_idx = 3'h7 - row_idx_n[2:0];
 	assign piece_color = board[(((7 - row_idx) * 8) + (7 - col_idx)) * 2+:2];
 	assign player_1_turn = current_player == PLAYER1_COLOR;
+
+	// Generate 25MHz pixel clock
+
 	vga_controller vga_ctrl(
 		.pixel_clk(clk_25MHz),
 		.rst_n(rst_n),
@@ -87,6 +99,7 @@ module connect_four_top (
 		.x_count(h_count),
 		.y_count(v_count)
 	);
+
 	connect_four game(
 		.clk(clk_25MHz),
 		.rst_n(rst_n),
@@ -99,6 +112,7 @@ module connect_four_top (
 		.port_game_over(game_over),
 		.port_winner(winner)
 	);
+
 	wire [9:0] cell_center_x;
 	wire [9:0] cell_center_y;
 	wire [9:0] cursor_center_x;
@@ -112,6 +126,7 @@ module connect_four_top (
 	wire cell_in_circle;
 	wire cursor_in_circle;
 	wire draw_circle_cursor;
+
 	assign cell_center_x = (BOARD_TOP_LEFT_X + (col_idx * CELL_SIZE)) + (CELL_SIZE / 2);
 	assign cell_center_y = (BOARD_TOP_LEFT_Y + (row_idx_n * CELL_SIZE)) + (CELL_SIZE / 2);
 	assign cursor_center_x = (BOARD_TOP_LEFT_X + (current_col * CELL_SIZE)) + (CELL_SIZE / 2);
@@ -125,6 +140,7 @@ module connect_four_top (
 	assign distance_squared_cursor = (dx_cursor * dx_cursor) + (dy_cursor * dy_cursor);
 	assign cursor_in_circle = distance_squared_cursor <= CIRCLE_RADIUS_SQUARED;
 	assign draw_circle_cursor = (draw_cursor & cursor_in_circle) & ~game_over;
+
 	always @(*) begin
 		if (_sv2v_0)
 			;

@@ -1,7 +1,8 @@
 name: gds
 
 on:
-  push:
+  # temporarily disabled to avoid running on every push
+  # push:
   workflow_dispatch:
 
 jobs:
