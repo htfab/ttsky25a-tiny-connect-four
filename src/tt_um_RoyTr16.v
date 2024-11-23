@@ -21,7 +21,7 @@ module tt_um_RoyTr16 (
   assign uio_oe  = 0;
 
   // List all unused inputs to prevent warnings
-  wire _unused = &{ena, ui_in [7:3], 1'b0};
+  wire _unused = &{ena, ui_in [7:3], uio_in [7:0], 1'b0};
 
   // VGA output wires
   wire       hsync, vsync;

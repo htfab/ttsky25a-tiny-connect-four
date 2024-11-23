@@ -23,12 +23,12 @@ module results_directions (
 	parameter COL_BITS = 3;
 	parameter ROW_BITS = 3;
 
-  input [ROW_BITS-1:0] current_row;
-  input [COL_BITS-1:0] current_col;
-  input [1:0] current_player;
-  input [(ROWS*COLS*2)-1:0] board_vec;
+	input [ROW_BITS-1:0] current_row;
+	input [COL_BITS-1:0] current_col;
+	input [1:0] current_player;
+	input [(ROWS*COLS*2)-1:0] board_vec;
 
-  output result_down;
+  	output result_down;
 	output result_row_1;
 	output result_row_2;
 	output result_row_3;
@@ -42,19 +42,18 @@ module results_directions (
 	output result_diag_left_down_3;
 	output result_diag_left_down_4;
 
-  wire [1:0] board_array [0:ROWS-1][0:COLS-1];
+	genvar iter1, iter2;
 
-  // Convert the 1D vector back to a 2D array
-  genvar i, j;
-  generate
-    for (i = 0; i < ROWS; i = i + 1) begin : row_loop
-      for (j = 0; j < COLS; j = j + 1) begin : col_loop
-        assign board_array[i][j] = board_vec[((i*COLS + j)*2) +: 2];
-      end
-    end
-  endgenerate
+	wire [1:0] board_array [0:ROWS-1][0:COLS-1];
 
-  assign result_down  = (board_array[current_row][current_col]   == current_player) &
+	// Convert the 1D vector back to a 2D array
+	generate
+		for (iter1 = 0; iter1 < ROWS; iter1 = iter1 + 1)
+			for (iter2 = 0; iter2 < COLS; iter2 = iter2 + 1)
+				assign board_array[iter1][iter2] = board_vec[((iter1*COLS + iter2)*2) +: 2];
+	endgenerate
+
+  	assign result_down  = (board_array[current_row][current_col]   == current_player) &
 											  (board_array[current_row-1][current_col] == current_player) &
 											  (board_array[current_row-2][current_col] == current_player) &
 											  (board_array[current_row-3][current_col] == current_player);

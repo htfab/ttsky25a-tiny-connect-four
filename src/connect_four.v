@@ -7,17 +7,14 @@ module connect_four (
 	port_board_out,
 	port_current_col,
 	port_current_player,
-	port_game_over,
-	port_winner
+	port_game_over
 );
 
-	reg _sv2v_0;
 	parameter ROWS = 8;
 	parameter COLS = 8;
 	parameter COL_BITS = 3;
 	parameter ROW_BITS = 3;
 	parameter LAST_COL = 3'd7;
-	parameter LAST_ROW = 3'd7;
 
 	// Inputs
 	input clk;
@@ -31,7 +28,6 @@ module connect_four (
 	output wire [2:0] port_current_col;
 	output wire [1:0] port_current_player;
 	output wire port_game_over;
-	output wire [1:0] port_winner;
 
 	// Player IDs
 	localparam EMPTY = 2'b00;
@@ -64,6 +60,9 @@ module connect_four (
 
 	// Winning pieces flashing counter
 	localparam FLASH_COUNTER_MAX = 24'd12500000;
+
+	// Genvar iterators
+	genvar gen_row, gen_col;
 
 	// Keep track of the game board
 	reg  [((ROWS * COLS) * 2) - 1:0] board_out;
@@ -147,8 +146,7 @@ module connect_four (
 	wire winning_diag_left_down_4;
 
 	// Victory and flashing pieces logic
-	reg [25:0] flash_counter;
-	wire toggle_flash;
+	reg [23:0] flash_counter;
 	reg show_winning_pieces;
 	reg winning_pieces [0:ROWS - 1][0:COLS - 1];
 
@@ -157,7 +155,6 @@ module connect_four (
 	assign port_current_col = current_col;
 	assign port_current_player = current_player;
 	assign port_game_over = game_over;
-	assign port_winner = winner;
 
 	assign current_row = row_to_drop[ROW_BITS - 1:0];
 	assign next_col_right = (current_col == LAST_COL ? 3'b000 : current_col + 3'b001);
@@ -229,14 +226,11 @@ module connect_four (
 	);
 
 	// Flatten the 2D board array into a 1D vector
-  genvar i, j;
-  generate
-    for (i = 0; i < ROWS; i = i + 1) begin : row_loop
-      for (j = 0; j < COLS; j = j + 1) begin : col_loop
-        assign board_vec[((i*COLS + j)*2) +: 2] = board[i][j];
-      end
-    end
-  endgenerate
+	generate
+		for (gen_row = 0; gen_row < ROWS; gen_row = gen_row + 1) 
+			for (gen_col = 0; gen_col < COLS; gen_col = gen_col + 1) 
+				assign board_vec[((gen_row*ROWS + gen_col)*2) +: 2] = board[gen_row][gen_col];
+	endgenerate
 
 	// Synchronizers to detect rising edge of input from user
 	always @(posedge clk or negedge rst_n)
@@ -310,23 +304,19 @@ module connect_four (
 			winner <= 2'b00;
 			check_state <= ST_NOT_CHECKING;
 			current_player <= 2'b01;
-			begin : sv2v_autoblock_1
-				reg signed [31:0] i;
-				for (i = 0; i < ROWS; i = i + 1)
-					column_counters[i] <= 4'b0000;
-			end
-			begin : sv2v_autoblock_2
-				reg signed [31:0] i;
-				for (i = 0; i < ROWS; i = i + 1)
-					begin : sv2v_autoblock_3
-						reg signed [31:0] j;
-						for (j = 0; j < COLS; j = j + 1)
-							begin
-								board[i][j] <= 2'b00;
-								winning_pieces[i][j] <= 1'b0;
-							end
+
+
+			for (integer col = 0; col < COLS; col = col + 1)
+				column_counters[col] <= 4'b0000;
+
+
+			for (integer row = 0; row < ROWS; row = row + 1)
+				for (integer col = 0; col < COLS; col = col + 1)
+					begin
+						board[row][col] <= 2'b00;
+						winning_pieces[row][col] <= 1'b0;
 					end
-			end
+
 		end
 		else if (current_state == ST_ADDING_PIECE)
 		begin
@@ -534,8 +524,6 @@ module connect_four (
 	// Output the board state
 	always @(*)
 	begin
-		if (_sv2v_0)
-			;
 		begin : sv2v_autoblock_4
 			reg signed [31:0] row;
 			for (row = 0; row < ROWS; row = row + 1)
@@ -550,5 +538,4 @@ module connect_four (
 				end
 		end
 	end
-	initial _sv2v_0 = 0;
 endmodule

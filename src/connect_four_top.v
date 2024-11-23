@@ -11,7 +11,6 @@ module connect_four_top (
 	vga_b
 );
 
-	reg _sv2v_0;
 	input wire clk_25MHz;
 	input wire rst_n;
 	input wire move_right;
@@ -24,15 +23,7 @@ module connect_four_top (
 	output reg [1:0] vga_b;
 
 	localparam H_ACTIVE = 640;
-	localparam H_FRONT_PORCH = 16;
-	localparam H_SYNC = 96;
-	localparam H_BACK_PORCH = 48;
-	localparam H_TOTAL = 800;
 	localparam V_ACTIVE = 480;
-	localparam V_FRONT_PORCH = 10;
-	localparam V_SYNC = 2;
-	localparam V_BACK_PORCH = 33;
-	localparam V_TOTAL = 525;
 
 	localparam ROWS = 8;
 	localparam COLS = 8;
@@ -42,7 +33,6 @@ module connect_four_top (
 	localparam BOARD_TOP_LEFT_Y = 10'd112;
 	localparam CURSOR_OFFSET = 10'd16;
 
-	localparam EMPTY = 2'b00;
 	localparam PLAYER1_COLOR = 2'b01;
 	localparam PLAYER2_COLOR = 2'b10;
 
@@ -66,14 +56,13 @@ module connect_four_top (
 	wire [2:0] current_col;
 	wire [1:0] current_player;
 	wire game_over;
-	wire [1:0] winner;
 	wire [9:0] h_count;
 	wire [9:0] v_count;
 	wire draw_board;
 	wire draw_cursor;
 	wire vga_active;
-	wire [9:0] col_idx_n;
-	wire [9:0] row_idx_n;
+	wire [2:0] col_idx_n;
+	wire [2:0] row_idx_n;
 	wire [2:0] col_idx;
 	wire [2:0] row_idx;
 	wire [1:0] piece_color;
@@ -82,10 +71,10 @@ module connect_four_top (
 	assign draw_board = (((h_count >= BOARD_TOP_LEFT_X) & (h_count < (BOARD_TOP_LEFT_X + (COLS * CELL_SIZE)))) & (v_count >= BOARD_TOP_LEFT_Y)) & (v_count < (BOARD_TOP_LEFT_Y + (ROWS * CELL_SIZE)));
 	assign draw_cursor = ((((h_count >= BOARD_TOP_LEFT_X) & (h_count < (BOARD_TOP_LEFT_X + (COLS * CELL_SIZE)))) & (v_count >= ((BOARD_TOP_LEFT_Y - CURSOR_OFFSET) - CELL_SIZE))) & (v_count < (BOARD_TOP_LEFT_Y - CURSOR_OFFSET))) & (current_col == col_idx);
 	assign vga_active = (h_count < H_ACTIVE) & (v_count < V_ACTIVE);
-	assign col_idx_n = (h_count - BOARD_TOP_LEFT_X) >> 10'd5;
-	assign row_idx_n = (v_count - BOARD_TOP_LEFT_Y) >> 10'd5;
-	assign col_idx = col_idx_n[2:0];
-	assign row_idx = 3'h7 - row_idx_n[2:0];
+	assign col_idx_n = ((h_count - BOARD_TOP_LEFT_X) >> 10'd5) & 10'd7;
+	assign row_idx_n = ((v_count - BOARD_TOP_LEFT_Y) >> 10'd5) & 10'd7;
+	assign col_idx = col_idx_n;
+	assign row_idx = 3'd7 - row_idx_n;
 	assign piece_color = board[(((7 - row_idx) * 8) + (7 - col_idx)) * 2+:2];
 	assign player_1_turn = current_player == PLAYER1_COLOR;
 
@@ -109,8 +98,7 @@ module connect_four_top (
 		.port_board_out(board),
 		.port_current_col(current_col),
 		.port_current_player(current_player),
-		.port_game_over(game_over),
-		.port_winner(winner)
+		.port_game_over(game_over)
 	);
 
 	wire [9:0] cell_center_x;
@@ -141,42 +129,50 @@ module connect_four_top (
 	assign cursor_in_circle = distance_squared_cursor <= CIRCLE_RADIUS_SQUARED;
 	assign draw_circle_cursor = (draw_cursor & cursor_in_circle) & ~game_over;
 
-	always @(*) begin
-		if (_sv2v_0)
-			;
+	always @(*) 
+	begin
 		vga_r = 2'b00;
 		vga_g = 2'b00;
 		vga_b = 2'b00;
-		if (vga_active) begin
+		if (vga_active) 
+		begin
 			vga_r = EMPTY_COLOR_R;
 			vga_g = EMPTY_COLOR_G;
 			vga_b = EMPTY_COLOR_B;
-			if (draw_board) begin
-				if (cell_in_circle) begin
-					if (piece_color == PLAYER1_COLOR) begin
+			if (draw_board) 
+			begin
+				if (cell_in_circle) 
+				begin
+					if (piece_color == PLAYER1_COLOR) 
+					begin
 						vga_r = PLAYER1_COLOR_R;
 						vga_g = PLAYER1_COLOR_G;
 						vga_b = PLAYER1_COLOR_B;
 					end
-					else if (piece_color == PLAYER2_COLOR) begin
+					else if (piece_color == PLAYER2_COLOR) 
+					begin
 						vga_r = PLAYER2_COLOR_R;
 						vga_g = PLAYER2_COLOR_G;
 						vga_b = PLAYER2_COLOR_B;
 					end
 				end
-				else begin
+				else 
+				begin
 					vga_r = BOARD_COLOR_R;
 					vga_g = BOARD_COLOR_G;
 					vga_b = BOARD_COLOR_B;
 				end
 			end
-			else if (draw_circle_cursor) begin
-				if (player_1_turn) begin
+			else if (draw_circle_cursor) 
+			begin
+				if (player_1_turn) 
+				begin
 					vga_r = PLAYER1_COLOR_R;
 					vga_g = PLAYER1_COLOR_G;
 					vga_b = PLAYER1_COLOR_B;
 				end
-				else begin
+				else 
+				begin
 					vga_r = PLAYER2_COLOR_R;
 					vga_g = PLAYER2_COLOR_G;
 					vga_b = PLAYER2_COLOR_B;
@@ -184,5 +180,5 @@ module connect_four_top (
 			end
 		end
 	end
-	initial _sv2v_0 = 0;
+
 endmodule
