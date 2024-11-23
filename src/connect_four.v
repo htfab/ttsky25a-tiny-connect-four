@@ -274,6 +274,18 @@ module connect_four (
 		end
 	end
 
+	// Counter for sequential synchronous reset of board counter
+	always @(posedge clk or negedge rst_n)
+	begin
+		if (!rst_n)
+			rst_board_counter <= 7'd0;
+		else
+		begin
+			if (rst_board_counter[6] == 1'b0)
+				rst_board_counter <= rst_board_counter + 7'd1;
+		end
+	end
+
 	// State Machine to control the game
 	always @(posedge clk or negedge rst_n)
 	begin
@@ -329,12 +341,6 @@ module connect_four (
 			winner <= 2'b00;
 			check_state <= ST_NOT_CHECKING;
 			current_player <= 2'b01;
-
-			if (rst_column_counter[COL_BITS] == 1'b0)
-				column_counters[rst_column_counter] <= {ROW_BITS{1'b0}};
-
-			if (!rst_board_done)
-				rst_board_counter <= rst_board_counter + 7'd1;
 
 		end // end of async reset
 		else
