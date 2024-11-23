@@ -68,6 +68,10 @@ module connect_four (
 	reg  [((ROWS * COLS) * 2) - 1:0] board_out;
 	wire [((ROWS * COLS) * 2) - 1:0] board_vec;
 	reg  [1:0] board [0:ROWS - 1][0:COLS - 1];
+	reg  [6:0] rst_board_counter;
+	wire [2:0] rst_col_counter;
+	wire [2:0] rst_row_counter;
+	wire rst_board_done;
 
 	// Game state variables
 	reg [1:0] current_player;
@@ -93,6 +97,7 @@ module connect_four (
 
 	// Keep track of the number of pieces in each column
 	reg [ROW_BITS:0] column_counters [COLS - 1:0];
+	reg [COL_BITS:0] rst_column_counter;
 	wire [ROW_BITS:0] row_to_drop;
 
 	// State machines
@@ -155,6 +160,10 @@ module connect_four (
 	assign port_current_col = current_col;
 	assign port_current_player = current_player;
 	assign port_game_over = game_over;
+
+	assign rst_col_counter = rst_board_counter[2:0];
+	assign rst_row_counter = rst_board_counter[5:3];
+	assign rst_board_done = rst_board_counter[6];
 
 	assign current_row = row_to_drop[ROW_BITS - 1:0];
 	assign next_col_right = (current_col == LAST_COL ? 3'b000 : current_col + 3'b001);
@@ -227,9 +236,13 @@ module connect_four (
 
 	// Flatten the 2D board array into a 1D vector
 	generate
-		for (gen_row = 0; gen_row < ROWS; gen_row = gen_row + 1) 
-			for (gen_col = 0; gen_col < COLS; gen_col = gen_col + 1) 
+		for (gen_row = 0; gen_row < ROWS; gen_row = gen_row + 1)
+		begin : row_loop
+			for (gen_col = 0; gen_col < COLS; gen_col = gen_col + 1)
+			begin : col_loop
 				assign board_vec[((gen_row*ROWS + gen_col)*2) +: 2] = board[gen_row][gen_col];
+			end
+		end
 	endgenerate
 
 	// Synchronizers to detect rising edge of input from user
@@ -246,6 +259,18 @@ module connect_four (
 			drop_piece_sync[2:0] <= {drop_piece_sync[1:0], drop_piece};
 			move_right_sync[2:0] <= {move_right_sync[1:0], move_right};
 			move_left_sync[2:0]  <= {move_left_sync[1:0], move_left};
+		end
+	end
+
+	// Counter for sequential synchronous reset of column counter
+	always @(posedge clk or negedge rst_n)
+	begin
+		if (!rst_n)
+			rst_column_counter <= {COL_BITS{1'b0}};
+		else
+		begin
+			if (rst_column_counter[COL_BITS] == 1'b0)
+				rst_column_counter <= rst_column_counter + {{COL_BITS-1{1'b0}}, 1'b1};
 		end
 	end
 
@@ -305,200 +330,207 @@ module connect_four (
 			check_state <= ST_NOT_CHECKING;
 			current_player <= 2'b01;
 
+			if (rst_column_counter[COL_BITS] == 1'b0)
+				column_counters[rst_column_counter] <= {ROW_BITS{1'b0}};
 
-			for (integer col = 0; col < COLS; col = col + 1)
-				column_counters[col] <= 4'b0000;
+			if (!rst_board_done)
+				rst_board_counter <= rst_board_counter + 7'd1;
 
-
-			for (integer row = 0; row < ROWS; row = row + 1)
-				for (integer col = 0; col < COLS; col = col + 1)
-					begin
-						board[row][col] <= 2'b00;
-						winning_pieces[row][col] <= 1'b0;
-					end
-
-		end
-		else if (current_state == ST_ADDING_PIECE)
+		end // end of async reset
+		else
 		begin
-			if (attempted_drop)
+			if (rst_column_counter[COL_BITS] == 1'b0)
+				column_counters[rst_column_counter] <= {ROW_BITS{1'b0}};
+			if (!rst_board_done)
 			begin
-				if (drop_allowed)
-					board[current_row][current_col] <= current_player;
+				board[rst_row_counter][rst_col_counter] <= 2'b00;
+				winning_pieces[rst_row_counter][rst_col_counter] <= 1'b0;
 			end
+			else
+			begin
+				if (current_state == ST_ADDING_PIECE)
+				begin
+					if (attempted_drop)
+					begin
+						if (drop_allowed)
+							board[current_row][current_col] <= current_player;
+					end
+				end
+				else if (current_state == ST_CHECKING_VICTORY)
+					case (check_state)
+						ST_NOT_CHECKING: check_state <= ST_CHECKING_DOWN;
+						ST_CHECKING_DOWN:
+						begin
+							check_state <= ST_CHECKING_ROW_1;
+							if (winning_down)
+							begin
+								game_over <= 1'b1;
+								winning_pieces[current_row][current_col] <= 1'b1;
+								winning_pieces[current_row - 1][current_col] <= 1'b1;
+								winning_pieces[current_row - 2][current_col] <= 1'b1;
+								winning_pieces[current_row - 3][current_col] <= 1'b1;
+							end
+						end
+						ST_CHECKING_ROW_1:
+						begin
+							check_state <= ST_CHECKING_ROW_2;
+							if (winning_row_1)
+							begin
+								game_over <= 1'b1;
+								winning_pieces[current_row][current_col] <= 1'b1;
+								winning_pieces[current_row][current_col - 1] <= 1'b1;
+								winning_pieces[current_row][current_col - 2] <= 1'b1;
+								winning_pieces[current_row][current_col - 3] <= 1'b1;
+							end
+						end
+						ST_CHECKING_ROW_2:
+						begin
+							check_state <= ST_CHECKING_ROW_3;
+							if (winning_row_2)
+							begin
+								game_over <= 1'b1;
+								winning_pieces[current_row][current_col + 1] <= 1'b1;
+								winning_pieces[current_row][current_col] <= 1'b1;
+								winning_pieces[current_row][current_col - 1] <= 1'b1;
+								winning_pieces[current_row][current_col - 2] <= 1'b1;
+							end
+						end
+						ST_CHECKING_ROW_3:
+						begin
+							check_state <= ST_CHECKING_ROW_4;
+							if (winning_row_3)
+							begin
+								game_over <= 1'b1;
+								winning_pieces[current_row][current_col + 2] <= 1'b1;
+								winning_pieces[current_row][current_col + 1] <= 1'b1;
+								winning_pieces[current_row][current_col] <= 1'b1;
+								winning_pieces[current_row][current_col - 1] <= 1'b1;
+							end
+						end
+						ST_CHECKING_ROW_4:
+						begin
+							check_state <= ST_CHECKING_DIAG_RIGHT_UP_1;
+							if (winning_row_4)
+							begin
+								game_over <= 1'b1;
+								winning_pieces[current_row][current_col + 3] <= 1'b1;
+								winning_pieces[current_row][current_col + 2] <= 1'b1;
+								winning_pieces[current_row][current_col + 1] <= 1'b1;
+								winning_pieces[current_row][current_col] <= 1'b1;
+							end
+						end
+						ST_CHECKING_DIAG_RIGHT_UP_1:
+						begin
+							check_state <= ST_CHECKING_DIAG_RIGHT_UP_2;
+							if (winning_diag_right_up_1)
+							begin
+								game_over <= 1'b1;
+								winning_pieces[current_row][current_col] <= 1'b1;
+								winning_pieces[current_row - 1][current_col - 1] <= 1'b1;
+								winning_pieces[current_row - 2][current_col - 2] <= 1'b1;
+								winning_pieces[current_row - 3][current_col - 3] <= 1'b1;
+							end
+						end
+						ST_CHECKING_DIAG_RIGHT_UP_2:
+						begin
+							check_state <= ST_CHECKING_DIAG_RIGHT_UP_3;
+							if (winning_diag_right_up_2)
+							begin
+								game_over <= 1'b1;
+								winning_pieces[current_row + 1][current_col + 1] <= 1'b1;
+								winning_pieces[current_row][current_col] <= 1'b1;
+								winning_pieces[current_row - 1][current_col - 1] <= 1'b1;
+								winning_pieces[current_row - 2][current_col - 2] <= 1'b1;
+							end
+						end
+						ST_CHECKING_DIAG_RIGHT_UP_3:
+						begin
+							check_state <= ST_CHECKING_DIAG_RIGHT_UP_4;
+							if (winning_diag_right_up_3)
+							begin
+								game_over <= 1'b1;
+								winning_pieces[current_row + 2][current_col + 2] <= 1'b1;
+								winning_pieces[current_row + 1][current_col + 1] <= 1'b1;
+								winning_pieces[current_row][current_col] <= 1'b1;
+								winning_pieces[current_row - 1][current_col - 1] <= 1'b1;
+							end
+						end
+						ST_CHECKING_DIAG_RIGHT_UP_4:
+						begin
+							check_state <= ST_CHECKING_DIAG_LEFT_DOWN_1;
+							if (winning_diag_right_up_4)
+							begin
+								game_over <= 1'b1;
+								winning_pieces[current_row + 3][current_col + 3] <= 1'b1;
+								winning_pieces[current_row + 2][current_col + 2] <= 1'b1;
+								winning_pieces[current_row + 1][current_col + 1] <= 1'b1;
+								winning_pieces[current_row][current_col] <= 1'b1;
+							end
+						end
+						ST_CHECKING_DIAG_LEFT_DOWN_1:
+						begin
+							check_state <= ST_CHECKING_DIAG_LEFT_DOWN_2;
+							if (winning_diag_left_down_1)
+							begin
+								game_over <= 1'b1;
+								winning_pieces[current_row][current_col] <= 1'b1;
+								winning_pieces[current_row + 1][current_col - 1] <= 1'b1;
+								winning_pieces[current_row + 2][current_col - 2] <= 1'b1;
+								winning_pieces[current_row + 3][current_col - 3] <= 1'b1;
+							end
+						end
+						ST_CHECKING_DIAG_LEFT_DOWN_2:
+						begin
+							check_state <= ST_CHECKING_DIAG_LEFT_DOWN_3;
+							if (winning_diag_left_down_2)
+							begin
+								game_over <= 1'b1;
+								winning_pieces[current_row - 1][current_col + 1] <= 1'b1;
+								winning_pieces[current_row][current_col] <= 1'b1;
+								winning_pieces[current_row + 1][current_col - 1] <= 1'b1;
+								winning_pieces[current_row + 2][current_col - 2] <= 1'b1;
+							end
+						end
+						ST_CHECKING_DIAG_LEFT_DOWN_3:
+						begin
+							check_state <= ST_CHECKING_DIAG_LEFT_DOWN_4;
+							if (winning_diag_left_down_3)
+							begin
+								game_over <= 1'b1;
+								winning_pieces[current_row - 2][current_col + 2] <= 1'b1;
+								winning_pieces[current_row - 1][current_col + 1] <= 1'b1;
+								winning_pieces[current_row][current_col] <= 1'b1;
+								winning_pieces[current_row + 1][current_col - 1] <= 1'b1;
+							end
+						end
+						ST_CHECKING_DIAG_LEFT_DOWN_4:
+						begin
+							check_state <= check_state_next_final;
+							if (winning_diag_left_down_4)
+							begin
+								game_over <= 1'b1;
+								winning_pieces[current_row - 3][current_col + 3] <= 1'b1;
+								winning_pieces[current_row - 2][current_col + 2] <= 1'b1;
+								winning_pieces[current_row - 1][current_col + 1] <= 1'b1;
+								winning_pieces[current_row][current_col] <= 1'b1;
+							end
+						end
+						ST_VICTORY:
+						begin
+							winner <= current_player;
+							check_state <= ST_CHECKING_DONE;
+						end
+						ST_CHECKING_DONE:
+						begin
+							check_state <= ST_NOT_CHECKING;
+							column_counters[current_col] <= column_counters[current_col] + 3'b001;
+							current_player <= next_player;
+						end
+						default:
+							check_state <= ST_NOT_CHECKING;
+					endcase
+			end // end of else (rst_column_counter)
 		end
-		else if (current_state == ST_CHECKING_VICTORY)
-			case (check_state)
-				ST_NOT_CHECKING: check_state <= ST_CHECKING_DOWN;
-				ST_CHECKING_DOWN:
-				begin
-					check_state <= ST_CHECKING_ROW_1;
-					if (winning_down)
-					begin
-						game_over <= 1'b1;
-						winning_pieces[current_row][current_col] <= 1'b1;
-						winning_pieces[current_row - 1][current_col] <= 1'b1;
-						winning_pieces[current_row - 2][current_col] <= 1'b1;
-						winning_pieces[current_row - 3][current_col] <= 1'b1;
-					end
-				end
-				ST_CHECKING_ROW_1:
-				begin
-					check_state <= ST_CHECKING_ROW_2;
-					if (winning_row_1)
-					begin
-						game_over <= 1'b1;
-						winning_pieces[current_row][current_col] <= 1'b1;
-						winning_pieces[current_row][current_col - 1] <= 1'b1;
-						winning_pieces[current_row][current_col - 2] <= 1'b1;
-						winning_pieces[current_row][current_col - 3] <= 1'b1;
-					end
-				end
-				ST_CHECKING_ROW_2:
-				begin
-					check_state <= ST_CHECKING_ROW_3;
-					if (winning_row_2)
-					begin
-						game_over <= 1'b1;
-						winning_pieces[current_row][current_col + 1] <= 1'b1;
-						winning_pieces[current_row][current_col] <= 1'b1;
-						winning_pieces[current_row][current_col - 1] <= 1'b1;
-						winning_pieces[current_row][current_col - 2] <= 1'b1;
-					end
-				end
-				ST_CHECKING_ROW_3:
-				begin
-					check_state <= ST_CHECKING_ROW_4;
-					if (winning_row_3)
-					begin
-						game_over <= 1'b1;
-						winning_pieces[current_row][current_col + 2] <= 1'b1;
-						winning_pieces[current_row][current_col + 1] <= 1'b1;
-						winning_pieces[current_row][current_col] <= 1'b1;
-						winning_pieces[current_row][current_col - 1] <= 1'b1;
-					end
-				end
-				ST_CHECKING_ROW_4:
-				begin
-					check_state <= ST_CHECKING_DIAG_RIGHT_UP_1;
-					if (winning_row_4)
-					begin
-						game_over <= 1'b1;
-						winning_pieces[current_row][current_col + 3] <= 1'b1;
-						winning_pieces[current_row][current_col + 2] <= 1'b1;
-						winning_pieces[current_row][current_col + 1] <= 1'b1;
-						winning_pieces[current_row][current_col] <= 1'b1;
-					end
-				end
-				ST_CHECKING_DIAG_RIGHT_UP_1:
-				begin
-					check_state <= ST_CHECKING_DIAG_RIGHT_UP_2;
-					if (winning_diag_right_up_1)
-					begin
-						game_over <= 1'b1;
-						winning_pieces[current_row][current_col] <= 1'b1;
-						winning_pieces[current_row - 1][current_col - 1] <= 1'b1;
-						winning_pieces[current_row - 2][current_col - 2] <= 1'b1;
-						winning_pieces[current_row - 3][current_col - 3] <= 1'b1;
-					end
-				end
-				ST_CHECKING_DIAG_RIGHT_UP_2:
-				begin
-					check_state <= ST_CHECKING_DIAG_RIGHT_UP_3;
-					if (winning_diag_right_up_2)
-					begin
-						game_over <= 1'b1;
-						winning_pieces[current_row + 1][current_col + 1] <= 1'b1;
-						winning_pieces[current_row][current_col] <= 1'b1;
-						winning_pieces[current_row - 1][current_col - 1] <= 1'b1;
-						winning_pieces[current_row - 2][current_col - 2] <= 1'b1;
-					end
-				end
-				ST_CHECKING_DIAG_RIGHT_UP_3:
-				begin
-					check_state <= ST_CHECKING_DIAG_RIGHT_UP_4;
-					if (winning_diag_right_up_3)
-					begin
-						game_over <= 1'b1;
-						winning_pieces[current_row + 2][current_col + 2] <= 1'b1;
-						winning_pieces[current_row + 1][current_col + 1] <= 1'b1;
-						winning_pieces[current_row][current_col] <= 1'b1;
-						winning_pieces[current_row - 1][current_col - 1] <= 1'b1;
-					end
-				end
-				ST_CHECKING_DIAG_RIGHT_UP_4:
-				begin
-					check_state <= ST_CHECKING_DIAG_LEFT_DOWN_1;
-					if (winning_diag_right_up_4)
-					begin
-						game_over <= 1'b1;
-						winning_pieces[current_row + 3][current_col + 3] <= 1'b1;
-						winning_pieces[current_row + 2][current_col + 2] <= 1'b1;
-						winning_pieces[current_row + 1][current_col + 1] <= 1'b1;
-						winning_pieces[current_row][current_col] <= 1'b1;
-					end
-				end
-				ST_CHECKING_DIAG_LEFT_DOWN_1:
-				begin
-					check_state <= ST_CHECKING_DIAG_LEFT_DOWN_2;
-					if (winning_diag_left_down_1)
-					begin
-						game_over <= 1'b1;
-						winning_pieces[current_row][current_col] <= 1'b1;
-						winning_pieces[current_row + 1][current_col - 1] <= 1'b1;
-						winning_pieces[current_row + 2][current_col - 2] <= 1'b1;
-						winning_pieces[current_row + 3][current_col - 3] <= 1'b1;
-					end
-				end
-				ST_CHECKING_DIAG_LEFT_DOWN_2:
-				begin
-					check_state <= ST_CHECKING_DIAG_LEFT_DOWN_3;
-					if (winning_diag_left_down_2)
-					begin
-						game_over <= 1'b1;
-						winning_pieces[current_row - 1][current_col + 1] <= 1'b1;
-						winning_pieces[current_row][current_col] <= 1'b1;
-						winning_pieces[current_row + 1][current_col - 1] <= 1'b1;
-						winning_pieces[current_row + 2][current_col - 2] <= 1'b1;
-					end
-				end
-				ST_CHECKING_DIAG_LEFT_DOWN_3:
-				begin
-					check_state <= ST_CHECKING_DIAG_LEFT_DOWN_4;
-					if (winning_diag_left_down_3)
-					begin
-						game_over <= 1'b1;
-						winning_pieces[current_row - 2][current_col + 2] <= 1'b1;
-						winning_pieces[current_row - 1][current_col + 1] <= 1'b1;
-						winning_pieces[current_row][current_col] <= 1'b1;
-						winning_pieces[current_row + 1][current_col - 1] <= 1'b1;
-					end
-				end
-				ST_CHECKING_DIAG_LEFT_DOWN_4:
-				begin
-					check_state <= check_state_next_final;
-					if (winning_diag_left_down_4)
-					begin
-						game_over <= 1'b1;
-						winning_pieces[current_row - 3][current_col + 3] <= 1'b1;
-						winning_pieces[current_row - 2][current_col + 2] <= 1'b1;
-						winning_pieces[current_row - 1][current_col + 1] <= 1'b1;
-						winning_pieces[current_row][current_col] <= 1'b1;
-					end
-				end
-				ST_VICTORY:
-				begin
-					winner <= current_player;
-					check_state <= ST_CHECKING_DONE;
-				end
-				ST_CHECKING_DONE:
-				begin
-					check_state <= ST_NOT_CHECKING;
-					column_counters[current_col] <= column_counters[current_col] + 3'b001;
-					current_player <= next_player;
-				end
-				default:
-					check_state <= ST_NOT_CHECKING;
-			endcase
 	end
 
 	// Flashing counter

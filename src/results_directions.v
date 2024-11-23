@@ -28,7 +28,7 @@ module results_directions (
 	input [1:0] current_player;
 	input [(ROWS*COLS*2)-1:0] board_vec;
 
-  	output result_down;
+  output result_down;
 	output result_row_1;
 	output result_row_2;
 	output result_row_3;
@@ -49,8 +49,12 @@ module results_directions (
 	// Convert the 1D vector back to a 2D array
 	generate
 		for (iter1 = 0; iter1 < ROWS; iter1 = iter1 + 1)
+		begin : row_loop
 			for (iter2 = 0; iter2 < COLS; iter2 = iter2 + 1)
+			begin : col_loop
 				assign board_array[iter1][iter2] = board_vec[((iter1*COLS + iter2)*2) +: 2];
+			end
+		end
 	endgenerate
 
   	assign result_down  = (board_array[current_row][current_col]   == current_player) &
