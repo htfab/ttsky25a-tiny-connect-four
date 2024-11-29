@@ -266,11 +266,11 @@ module connect_four (
 	always @(posedge clk or negedge rst_n)
 	begin
 		if (!rst_n)
-			rst_column_counter <= {COL_BITS{1'b0}};
+			rst_column_counter <= {COL_BITS+1{1'b0}};
 		else
 		begin
 			if (rst_column_counter[COL_BITS] == 1'b0)
-				rst_column_counter <= rst_column_counter + {{COL_BITS-1{1'b0}}, 1'b1};
+				rst_column_counter <= rst_column_counter + {{COL_BITS{1'b0}}, 1'b1};
 		end
 	end
 
@@ -346,7 +346,7 @@ module connect_four (
 		else
 		begin
 			if (rst_column_counter[COL_BITS] == 1'b0)
-				column_counters[rst_column_counter] <= {ROW_BITS{1'b0}};
+				column_counters[rst_column_counter[2:0]] <= {ROW_BITS+1{1'b0}};
 			if (!rst_board_done)
 			begin
 				board[rst_row_counter][rst_col_counter] <= 2'b00;

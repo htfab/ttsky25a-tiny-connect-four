@@ -56,70 +56,115 @@ module results_directions (
 			end
 		end
 	endgenerate
+	
 
-  	assign result_down  = (board_array[current_row][current_col]   == current_player) &
-											  (board_array[current_row-1][current_col] == current_player) &
-											  (board_array[current_row-2][current_col] == current_player) &
-											  (board_array[current_row-3][current_col] == current_player);
+	wire [2:0] col_minus_3 = current_col - 3;
+	wire [2:0] col_minus_2 = current_col - 2;
+	wire [2:0] col_minus_1 = current_col - 1;
+	wire [2:0] col_plus_1  = current_col + 1;
+	wire [2:0] col_plus_2  = current_col + 2;
+	wire [2:0] col_plus_3  = current_col + 3;
 
-	assign result_row_1 = (board_array[current_row][current_col]   == current_player) &
-												(board_array[current_row][current_col-1] == current_player) &
-												(board_array[current_row][current_col-2] == current_player) &
-												(board_array[current_row][current_col-3] == current_player);
+	wire [2:0] row_minus_3 = current_row - 3;
+	wire [2:0] row_minus_2 = current_row - 2;
+	wire [2:0] row_minus_1 = current_row - 1;
+	wire [2:0] row_plus_1  = current_row + 1;
+	wire [2:0] row_plus_2  = current_row + 2;
+	wire [2:0] row_plus_3  = current_row + 3;
 
-	assign result_row_2 = (board_array[current_row][current_col+1] == current_player) &
-												(board_array[current_row][current_col]   == current_player) &
-												(board_array[current_row][current_col-1] == current_player) &
-												(board_array[current_row][current_col-2] == current_player);
+	wire [1:0] pos = board_array[current_row][current_col];
 
-	assign result_row_3 = (board_array[current_row][current_col+2] == current_player) &
-												(board_array[current_row][current_col+1] == current_player) &
-												(board_array[current_row][current_col]   == current_player) &
-												(board_array[current_row][current_col-1] == current_player);
+	wire [1:0] pos_left_1 = board_array[current_row][col_minus_1];
+	wire [1:0] pos_left_2 = board_array[current_row][col_minus_2];
+	wire [1:0] pos_left_3 = board_array[current_row][col_minus_3];
+	wire [1:0] pos_right_1 = board_array[current_row][col_plus_1];
+	wire [1:0] pos_right_2 = board_array[current_row][col_plus_2];
+	wire [1:0] pos_right_3 = board_array[current_row][col_plus_3];
 
-	assign result_row_4 = (board_array[current_row][current_col+3] == current_player) &
-												(board_array[current_row][current_col+2] == current_player) &
-												(board_array[current_row][current_col+1] == current_player) &
-												(board_array[current_row][current_col]   == current_player);
+	wire [1:0] pos_down_3 = board_array[row_minus_3][current_col];
+	wire [1:0] pos_down_2 = board_array[row_minus_2][current_col];
+	wire [1:0] pos_down_1 = board_array[row_minus_1][current_col];
 
-	assign result_diag_right_up_1 = (board_array[current_row][current_col]     == current_player) &
-																	(board_array[current_row-1][current_col-1] == current_player) &
-																	(board_array[current_row-2][current_col-2] == current_player) &
-																	(board_array[current_row-3][current_col-3] == current_player);
+	wire [1:0] pos_diag_right_up_1 = board_array[row_plus_1][col_plus_1];
+	wire [1:0] pos_diag_right_up_2 = board_array[row_plus_2][col_plus_2];
+	wire [1:0] pos_diag_right_up_3 = board_array[row_plus_3][col_plus_3];
 
-	assign result_diag_right_up_2 = (board_array[current_row+1][current_col+1] == current_player) &
-																	(board_array[current_row][current_col]     == current_player) &
-																	(board_array[current_row-1][current_col-1] == current_player) &
-																	(board_array[current_row-2][current_col-2] == current_player);
+	wire [1:0] pos_diag_right_down_1 = board_array[row_minus_1][col_plus_1];
+	wire [1:0] pos_diag_right_down_2 = board_array[row_minus_2][col_plus_2];
+	wire [1:0] pos_diag_right_down_3 = board_array[row_minus_3][col_plus_3];
 
-	assign result_diag_right_up_3 = (board_array[current_row+2][current_col+2] == current_player) &
-																	(board_array[current_row+1][current_col+1] == current_player) &
-																	(board_array[current_row][current_col]     == current_player) &
-																	(board_array[current_row-1][current_col-1] == current_player);
+	wire [1:0] pos_diag_left_up_1 = board_array[row_plus_1][col_minus_1];
+	wire [1:0] pos_diag_left_up_2 = board_array[row_plus_2][col_minus_2];
+	wire [1:0] pos_diag_left_up_3 = board_array[row_plus_3][col_minus_3];
 
-	assign result_diag_right_up_4 = (board_array[current_row+3][current_col+3] == current_player) &
-																	(board_array[current_row+2][current_col+2] == current_player) &
-																	(board_array[current_row+1][current_col+1] == current_player) &
-																	(board_array[current_row][current_col]     == current_player);
+	wire [1:0] pos_diag_left_down_1 = board_array[row_minus_1][col_minus_1];
+	wire [1:0] pos_diag_left_down_2 = board_array[row_minus_2][col_minus_2];
+	wire [1:0] pos_diag_left_down_3 = board_array[row_minus_3][col_minus_3];
 
-	assign result_diag_left_down_1 = (board_array[current_row][current_col]     == current_player) &
-																	 (board_array[current_row+1][current_col-1] == current_player) &
-																	 (board_array[current_row+2][current_col-2] == current_player) &
-																   (board_array[current_row+3][current_col-3] == current_player);
 
-	assign result_diag_left_down_2 = (board_array[current_row-1][current_col+1] == current_player) &
-																	 (board_array[current_row][current_col]     == current_player) &
-																	 (board_array[current_row+1][current_col-1] == current_player) &
-																	 (board_array[current_row+2][current_col-2] == current_player);
+	assign result_down  = (pos == current_player) &
+						  (pos_down_1 == current_player) &
+						  (pos_down_2 == current_player) &
+  	                      (pos_down_3 == current_player);
 
-	assign result_diag_left_down_3 = (board_array[current_row-2][current_col+2] == current_player) &
-																	 (board_array[current_row-1][current_col+1] == current_player) &
-																	 (board_array[current_row][current_col]     == current_player) &
-																	 (board_array[current_row+1][current_col-1] == current_player);
+	assign result_row_1 = (pos_left_3 == current_player) &
+						  (pos_left_2 == current_player) &
+						  (pos_left_1 == current_player) &
+						  (pos == current_player);
 
-	assign result_diag_left_down_4 = (board_array[current_row-3][current_col+3] == current_player) &
-																	 (board_array[current_row-2][current_col+2] == current_player) &
-																	 (board_array[current_row-1][current_col+1] == current_player) &
-																	 (board_array[current_row][current_col]     == current_player);
+	assign result_row_2 = (pos_left_2 == current_player) &
+						  (pos_left_1 == current_player) &
+						  (pos == current_player) &
+						  (pos_right_1 == current_player);
+
+	assign result_row_3 = (pos_left_1 == current_player) &
+						  (pos == current_player) &
+						  (pos_right_1 == current_player) &
+						  (pos_right_2 == current_player);
+
+	assign result_row_4 = (pos == current_player) &
+						  (pos_right_1 == current_player) &
+						  (pos_right_2 == current_player) &
+						  (pos_right_3 == current_player);
+
+	assign result_diag_right_up_1 = (pos_diag_left_up_3 == current_player) &
+									(pos_diag_left_up_2 == current_player) &
+									(pos_diag_left_up_1 == current_player) &
+									(pos == current_player);
+
+	assign result_diag_right_up_2 = (pos_diag_left_up_2 == current_player) &
+									(pos_diag_left_up_1 == current_player) &
+									(pos == current_player) &
+									(pos_diag_right_down_1 == current_player);
+
+	assign result_diag_right_up_3 = (pos_diag_left_up_1 == current_player) &
+									(pos == current_player) &
+									(pos_diag_right_down_1 == current_player) &
+									(pos_diag_right_down_2 == current_player);
+
+	assign result_diag_right_up_4 = (pos == current_player) &
+									(pos_diag_right_down_1 == current_player) &
+									(pos_diag_right_down_2 == current_player) &
+									(pos_diag_right_down_3 == current_player);
+
+	assign result_diag_left_down_1 = (pos == current_player) &
+									 (pos_diag_left_down_1 == current_player) &
+									 (pos_diag_left_down_2 == current_player) &
+									 (pos_diag_left_down_3 == current_player);
+
+	assign result_diag_left_down_2 = (pos_diag_right_up_1 == current_player) &
+									 (pos == current_player) &
+									 (pos_diag_left_down_1 == current_player) &
+									 (pos_diag_left_down_2 == current_player);
+
+	assign result_diag_left_down_3 = (pos_diag_right_up_2 == current_player) &
+									 (pos_diag_right_up_1 == current_player) &
+									 (pos == current_player) &
+									 (pos_diag_left_down_1 == current_player);
+
+	assign result_diag_left_down_4 = (pos_diag_right_up_3 == current_player) &
+									 (pos_diag_right_up_2 == current_player) &
+									 (pos_diag_right_up_1 == current_player) &
+									 (pos == current_player);
 
 endmodule

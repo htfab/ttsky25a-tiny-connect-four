@@ -5,7 +5,7 @@
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
-PROJECT_SOURCES = tt_um_RoyTr16.sv vga_controller.sv connect_four.sv connect_four_top.sv
+PROJECT_SOURCES = tt_um_RoyTr16.v vga_controller.v connect_four.v connect_four_top.v check_directions.v results_directions.v
 
 ifneq ($(GATES),yes)
 

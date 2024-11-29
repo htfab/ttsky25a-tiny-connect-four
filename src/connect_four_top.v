@@ -68,11 +68,17 @@ module connect_four_top (
 	wire [1:0] piece_color;
 	wire player_1_turn;
 
+	wire [9:0] h_count_board_offset;
+	wire [9:0] v_count_board_offset;
+
+	assign h_count_board_offset = h_count - BOARD_TOP_LEFT_X;
+	assign v_count_board_offset = v_count - BOARD_TOP_LEFT_Y;
+
 	assign draw_board = (((h_count >= BOARD_TOP_LEFT_X) & (h_count < (BOARD_TOP_LEFT_X + (COLS * CELL_SIZE)))) & (v_count >= BOARD_TOP_LEFT_Y)) & (v_count < (BOARD_TOP_LEFT_Y + (ROWS * CELL_SIZE)));
 	assign draw_cursor = ((((h_count >= BOARD_TOP_LEFT_X) & (h_count < (BOARD_TOP_LEFT_X + (COLS * CELL_SIZE)))) & (v_count >= ((BOARD_TOP_LEFT_Y - CURSOR_OFFSET) - CELL_SIZE))) & (v_count < (BOARD_TOP_LEFT_Y - CURSOR_OFFSET))) & (current_col == col_idx);
 	assign vga_active = (h_count < H_ACTIVE) & (v_count < V_ACTIVE);
-	assign col_idx_n = ((h_count - BOARD_TOP_LEFT_X) >> 10'd5) & 10'd7;
-	assign row_idx_n = ((v_count - BOARD_TOP_LEFT_Y) >> 10'd5) & 10'd7;
+	assign col_idx_n = h_count_board_offset[7:5];
+	assign row_idx_n = v_count_board_offset[7:5];
 	assign col_idx = col_idx_n;
 	assign row_idx = 3'd7 - row_idx_n;
 	assign piece_color = board[(((7 - row_idx) * 8) + (7 - col_idx)) * 2+:2];
@@ -105,12 +111,12 @@ module connect_four_top (
 	wire [9:0] cell_center_y;
 	wire [9:0] cursor_center_x;
 	wire [9:0] cursor_center_y;
-	wire [19:0] dx_cell;
-	wire [19:0] dy_cell;
-	wire [19:0] distance_squared_cell;
-	wire [19:0] dx_cursor;
-	wire [19:0] dy_cursor;
-	wire [19:0] distance_squared_cursor;
+	wire [9:0] dx_cell;
+	wire [9:0] dy_cell;
+	wire [9:0] distance_squared_cell;
+	wire [9:0] dx_cursor;
+	wire [9:0] dy_cursor;
+	wire [9:0] distance_squared_cursor;
 	wire cell_in_circle;
 	wire cursor_in_circle;
 	wire draw_circle_cursor;
