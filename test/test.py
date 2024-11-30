@@ -54,12 +54,12 @@ async def make_move(dut, column):
 def print_board(dut):
     """Helper function to print the board"""
     dut._log.info("Board State:")
-    top_board = dut.user_project.game_inst.board
+    board = dut.user_project.game_inst.game.board
     for row in range(0,8):
         row_str = ""
         for col in range(0,8):
-            idx = (row*8 + (7-col))*2
-            piece_color = top_board.value[idx+1:idx]
+            idx = (7-row)*8+col
+            piece_color = board[idx].value
             row_str += "X" if piece_color == 1 else "O" if piece_color == 2 else "."
         dut._log.info(row_str)
 
