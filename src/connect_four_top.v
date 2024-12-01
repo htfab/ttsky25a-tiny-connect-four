@@ -52,7 +52,6 @@ module connect_four_top (
 	localparam PLAYER2_COLOR_G = 2'b00;
 	localparam PLAYER2_COLOR_B = 2'b00;
 
-	wire [127:0] board;
 	wire [2:0] current_col;
 	wire [1:0] current_player;
 	wire game_over;
@@ -81,11 +80,9 @@ module connect_four_top (
 	assign row_idx_n = v_count_board_offset[7:5];
 	assign col_idx = col_idx_n;
 	assign row_idx = 3'd7 - row_idx_n;
-	assign piece_color = board[(((7 - row_idx) * 8) + (7 - col_idx)) * 2+:2];
 	assign player_1_turn = current_player == PLAYER1_COLOR;
 
 	// Generate 25MHz pixel clock
-
 	vga_controller vga_ctrl(
 		.pixel_clk(clk_25MHz),
 		.rst_n(rst_n),
@@ -101,10 +98,11 @@ module connect_four_top (
 		.move_right(move_right),
 		.move_left(move_left),
 		.drop_piece(drop_piece),
-		.port_board_out(board),
+		.row_read(row_idx),
+		.col_read(col_idx),
+		.data_out(piece_color),
 		.port_current_col(current_col),
 		.port_current_player(current_player),
-		.port_game_over(game_over)
 	);
 
 	wire [9:0] cell_center_x;
