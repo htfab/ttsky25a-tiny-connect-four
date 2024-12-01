@@ -49,12 +49,12 @@ module connect_four (
 	wire [ROW_BITS:0] row_to_drop;
 	reg [ROW_BITS-1:0] current_row;
 	reg  [COL_BITS-1:0] current_col;
-	reg [1:0] winner;
+	wire [1:0] winner;
 	wire [2:0] next_col_right;
 	wire [2:0] next_col_left;
 	wire [1:0] next_player;
 	wire drop_allowed;
-	
+
 	// Synchronizers for input buttons
 	reg [2:0] drop_piece_sync;
 	reg [2:0] move_right_sync;
@@ -98,7 +98,7 @@ module connect_four (
 
 	// Assign the board memory interface
 	assign mem_row = (current_state == ST_ADDING_PIECE ? current_row   :
-	                  current_state == ST_CHECKING_VICTORY? row_to_get : 
+	                  current_state == ST_CHECKING_VICTORY? row_to_get :
 					  row_read);
 
 	// If we are adding a piece, we want to read the row that the piece will be dropped
@@ -107,7 +107,7 @@ module connect_four (
 	assign mem_col = (current_state == ST_ADDING_PIECE ? current_col   :
 	                  current_state == ST_CHECKING_VICTORY? col_to_get :
 					  col_read);
-	
+
 	// Synchronizers to detect rising edge of input from user
 	always @(posedge clk or negedge rst_n)
 	begin

@@ -2,7 +2,7 @@ name: gds
 
 on:
   # temporarily disabled to avoid running on every push
-  # push:
+  push:
   workflow_dispatch:
 
 jobs:
