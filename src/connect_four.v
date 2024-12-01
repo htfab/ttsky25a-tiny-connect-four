@@ -79,6 +79,7 @@ module connect_four (
 	assign port_current_col = current_col;
 	assign port_current_player = current_player;
 
+	// Next column and player
 	assign next_col_right = (current_col == LAST_COL ? 3'b000 : current_col + 3'b001);
 	assign next_col_left = (current_col == 0 ? LAST_COL : current_col - 3'b001);
 	assign next_player = (current_player == PLAYER1 ? PLAYER2 : PLAYER1);
@@ -96,14 +97,14 @@ module connect_four (
 	reg  start_checking;
 	wire done_checking;
 
-	// Assign the board memory interface
+	// These signals are used as index inputs to read the board memory
 	assign mem_row = (current_state == ST_ADDING_PIECE ? current_row   :
 	                  current_state == ST_CHECKING_VICTORY? row_to_get :
 					  row_read);
 
-	// If we are adding a piece, we want to read the row that the piece will be dropped
+	// If we are adding a piece, we want to read the row that the piece will be dropped to
 	// mem_col is the column to drop the piece
-	// row_to_drop is the row that the piece will be dropped
+	// row_to_drop is the row that the piece will be dropped to
 	assign mem_col = (current_state == ST_ADDING_PIECE ? current_col   :
 	                  current_state == ST_CHECKING_VICTORY? col_to_get :
 					  col_read);
@@ -149,6 +150,7 @@ module connect_four (
 				ST_IDLE:
 					if (rising_drop_piece)
 					begin
+						// Write pulse to board
 						write_to_board <= 1'b1;
 						current_state <= ST_ADDING_PIECE;
 					end
@@ -187,6 +189,9 @@ module connect_four (
 	begin
 		if (!rst_n)
 			current_row <= 3'b000;
+
+		// If we are adding a piece, we want to read the row that the piece will be dropped to
+		// in order to be able to check victory for that index
 		else if (current_state == ST_ADDING_PIECE)
 		begin
 			current_row <= row_to_drop[ROW_BITS-1:0];
@@ -207,6 +212,7 @@ module connect_four (
 		end
 	end
 
+	// Component to check for victory in all directions
 	victory_checker victory_checker_inst (
 		.clk(clk),
 		.rst_n(rst_n),
@@ -220,6 +226,7 @@ module connect_four (
 		.winner(winner)
 	);
 
+	// Component to read and write to board memory
 	board_rw board_rw_inst (
 		.clk(clk),
 		.rst_n(rst_n),

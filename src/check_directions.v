@@ -18,6 +18,8 @@ module check_directions (
 
   input [2:0] current_row;
   input [2:0] current_col;
+
+  // Check if there are enough slots in the direction to check
 	output wire check_down;
   output wire check_row_1;
   output wire check_row_2;
@@ -32,6 +34,7 @@ module check_directions (
   output wire check_diag_left_down_3;
   output wire check_diag_left_down_4;
 
+  // Base the checks on the current row and column
   assign check_down             =  current_row >= 3                                                                ;
 	assign check_row_1            =  current_col >= 3                                                                ;
 	assign check_row_2            = (current_col >= 2) & (current_col <= 6)                                          ;

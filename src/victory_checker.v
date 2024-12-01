@@ -61,6 +61,7 @@ module victory_checker (
 
     wire [1:0] winner_check;
 
+    // Check if there are enough slots in each direction to check
     check_directions check_directions_inst (
 		.current_row(move_row),
 		.current_col(move_col),
@@ -79,6 +80,8 @@ module victory_checker (
 		.check_diag_left_down_4(check_diag_left_down_4)
 	);
 
+    // Component to check for winning pieces in a specified direction
+    // The direction is specified by the check_state
     direction_checker direction_checker_inst (
         .clk(clk),
         .rst_n(rst_n),
@@ -93,6 +96,7 @@ module victory_checker (
         .winner(winner_check)
     );
 
+    // Check if the game is over
     always@(posedge clk or negedge rst_n)
     begin
         if (!rst_n)
@@ -108,6 +112,7 @@ module victory_checker (
         end
     end
 
+    // State machine to check for winning pieces in all directions
 	always @(posedge clk or negedge rst_n)
 	begin
 		if (!rst_n)

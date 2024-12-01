@@ -20,11 +20,7 @@ module direction_checker (
     input [3:0] direction;
     input [1:0] data_in;
 
-    output reg [2:0] row_read;
-    output reg [2:0] col_read;
-    output reg finished_checking;
-    output reg [1:0] winner;
-
+    // Direction parameters
     localparam DOWN = 4'b0001;
 	localparam ROW_1 = 4'b0010;
 	localparam ROW_2 = 4'b0011;
@@ -39,6 +35,7 @@ module direction_checker (
 	localparam DIAG_LEFT_DOWN_3 = 4'b1100;
 	localparam DIAG_LEFT_DOWN_4 = 4'b1101;
 
+    // State machine parameters
     localparam ST_IDLE = 3'b000;
     localparam ST_READING_PIECE_1 = 3'b001;
     localparam ST_READING_PIECE_2 = 3'b010;
@@ -46,16 +43,29 @@ module direction_checker (
     localparam ST_READING_PIECE_4 = 3'b100;
     localparam ST_COMPARE = 3'b101;
 
+    // These are the row and column coordinates of the pieces to be checked
+    // They are output so that they can be used to read the board memory
+    // which is instantiated in the connect_four module
+    output reg [2:0] row_read;
+    output reg [2:0] col_read;
+
+    output reg finished_checking;
+    output reg [1:0] winner;
+
     reg [2:0] current_state;
 
+    // These are the pieces to be checked
+    // They are read sequentially from the board memory
     reg [1:0] piece1;
     reg [1:0] piece2;
     reg [1:0] piece3;
     reg [1:0] piece4;
 
+    // Piece 1 is always the piece which was just dropped
     wire [2:0] row_piece_1 = row;
     wire [2:0] col_piece_1 = col;
 
+    // The other pieces are determined by the direction
     wire [2:0] row_piece_2, row_piece_3, row_piece_4;
     wire [2:0] col_piece_2, col_piece_3, col_piece_4;
 
@@ -63,6 +73,15 @@ module direction_checker (
     reg [2:0] row_offset [0:2];
     reg [2:0] col_offset [0:2];
 
+    // Assign coordinates using offsets
+    assign row_piece_2 = row + row_offset[0];
+    assign row_piece_3 = row + row_offset[1];
+    assign row_piece_4 = row + row_offset[2];
+    assign col_piece_2 = col + col_offset[0];
+    assign col_piece_3 = col + col_offset[1];
+    assign col_piece_4 = col + col_offset[2];
+
+    // State machine for sequential reading of pieces
     always @(posedge clk or negedge rst_n)
     begin
         if (!rst_n)
@@ -259,14 +278,5 @@ module direction_checker (
             end
         endcase
     end
-
-    // Assign coordinates using offsets
-    assign row_piece_2 = row + row_offset[0];
-    assign row_piece_3 = row + row_offset[1];
-    assign row_piece_4 = row + row_offset[2];
-    assign col_piece_2 = col + col_offset[0];
-    assign col_piece_3 = col + col_offset[1];
-    assign col_piece_4 = col + col_offset[2];
-
 
 endmodule
