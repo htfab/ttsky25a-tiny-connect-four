@@ -9,7 +9,7 @@ module direction_checker (
     row_read,
     col_read,
     winner
-)
+);
 
     input clk;
     input rst_n;
@@ -44,7 +44,7 @@ module direction_checker (
     localparam ST_READING_PIECE_4 = 3'b100;
     localparam ST_COMPARE = 3'b101;
 
-    reg [3:0] current_state;
+    reg [2:0] current_state;
 
     reg [1:0] piece1;
     reg [1:0] piece2;
@@ -54,44 +54,32 @@ module direction_checker (
     wire [2:0] row_piece_1 = row;
     wire [2:0] col_piece_1 = col;
 
-    wire [2:0] row_piece_2;
-    wire [2:0] row_piece_3;
-    wire [2:0] row_piece_4;
+    wire [2:0] row_piece_2, row_piece_3, row_piece_4;
+    wire [2:0] col_piece_2, col_piece_3, col_piece_4;
 
-    wire [2:0] col_piece_2;
-    wire [2:0] col_piece_3;
-    wire [2:0] col_piece_4;
+    // Define offsets for each direction
+    reg [2:0] row_offset [0:2];
+    reg [2:0] col_offset [0:2];
 
-    wire [2:0] row_up_1 = row + 1;
-    wire [2:0] row_up_2 = row + 2;
-    wire [2:0] row_up_3 = row + 3;
-    wire [2:0] row_down_1 = row - 1;
-    wire [2:0] row_down_2 = row - 2;
-    wire [2:0] row_down_3 = row - 3;
-
-    wire [2:0] col_left_1 = col - 1;
-    wire [2:0] col_left_2 = col - 2;
-    wire [2:0] col_left_3 = col - 3;
-    wire [2:0] col_right_1 = col + 1;
-    wire [2:0] col_right_2 = col + 2;
-    wire [2:0] col_right_3 = col + 3;
 
     always @(posedge clk or negedge rst_n)
     begin
         if (!rst_n)
+        begin
             current_state <= ST_IDLE;
             row_read <= 3'b000;
             col_read <= 3'b000;
+        end
         else
         begin
             case (current_state)
                 ST_IDLE:
                 begin
                     winner <= 2'b00;
-                    piece1 = 2'b00;
-                    piece2 = 2'b00;
-                    piece3 = 2'b00;
-                    piece4 = 2'b00;
+                    piece1 <= 2'b00;
+                    piece2 <= 2'b00;
+                    piece3 <= 2'b00;
+                    piece4 <= 2'b00;
                     if (start)
                     begin
                         row_read <= row_piece_1;
@@ -137,177 +125,145 @@ module direction_checker (
         end
     end
 
+
     always @(*) begin
         case (direction)
             DOWN:
-                begin
-                    row_piece_2 = row_down_1;
-                    col_piece_2 = col;
-
-                    row_piece_3 = row_down_2;
-                    col_piece_3 = col;
-
-                    row_piece_4 = row_down_3;
-                    col_piece_4 = col;
-                end
+            begin
+                row_offset[0] = -3'd1;
+                row_offset[1] = -3'd2;
+                row_offset[2] = -3'd3;
+                col_offset[0] = 3'd0;
+                col_offset[1] = 3'd0;
+                col_offset[2] = 3'd0;
+            end
             ROW_1:
-                begin
-                    row_piece_2 = row;
-                    col_piece_2 = col_left_3;
-
-                    row_piece_3 = row;
-                    col_piece_3 = col_left_2;
-
-                    row_piece_4 = row;
-                    col_piece_4 = col_left_1;
-                end
-
+            begin
+                row_offset[0] = 3'd0;
+                row_offset[1] = 3'd0;
+                row_offset[2] = 3'd0;
+                col_offset[0] = -3'd3;
+                col_offset[1] = -3'd2;
+                col_offset[2] = -3'd1;
+            end
             ROW_2:
-                begin
-                    row_piece_2 = row;
-                    col_piece_2 = col_left_2;
-
-                    row_piece_3 = row;
-                    col_piece_3 = col_left_1;
-
-                    row_piece_4 = row;
-                    col_piece_4 = col_right_1;
-                end
-
+            begin
+                row_offset[0] = 3'd0;
+                row_offset[1] = 3'd0;
+                row_offset[2] = 3'd0;
+                col_offset[0] = -3'd2;
+                col_offset[1] = -3'd1;
+                col_offset[2] = 3'd1;
+            end
             ROW_3:
-                begin
-                    row_piece_2 = row;
-                    col_piece_2 = col_left_1;
-
-                    row_piece_3 = row;
-                    col_piece_3 = col_right_1;
-
-                    row_piece_4 = row;
-                    col_piece_4 = col_right_2;
-                end
-
+            begin
+                row_offset[0] = 3'd0;
+                row_offset[1] = 3'd0;
+                row_offset[2] = 3'd0;
+                col_offset[0] = -3'd1;
+                col_offset[1] = 3'd1;
+                col_offset[2] = 3'd2;
+            end
             ROW_4:
-                begin
-                    row_piece_2 = row;
-                    col_piece_2 = col_right_1;
-
-                    row_piece_3 = row;
-                    col_piece_3 = col_right_2;
-
-                    row_piece_4 = row;
-                    col_piece_4 = col_right_3;
-                end
-
+            begin
+                row_offset[0] = 3'd0;
+                row_offset[1] = 3'd0;
+                row_offset[2] = 3'd0;
+                col_offset[0] = 3'd1;
+                col_offset[1] = 3'd2;
+                col_offset[2] = 3'd3;
+            end
             DIAG_RIGHT_UP_1:
-                begin
-                    row_piece_2 = row_left_3;
-                    col_piece_2 = col_down_3;
-
-                    row_piece_3 = row_left_2;
-                    col_piece_3 = col_down_2;
-
-                    row_piece_4 = row_left_1;
-                    col_piece_4 = col_down_1;
-                end
-
+            begin
+                row_offset[0] = -3'd3;
+                row_offset[1] = -3'd2;
+                row_offset[2] = -3'd1;
+                col_offset[0] = -3'd3;
+                col_offset[1] = -3'd2;
+                col_offset[2] = -3'd1;
+            end
             DIAG_RIGHT_UP_2:
-                begin
-                    row_piece_2 = row_left_2;
-                    col_piece_2 = col_down_2;
-
-                    row_piece_3 = row_left_1;
-                    col_piece_3 = col_down_1;
-
-                    row_piece_4 = row_right_1;
-                    col_piece_4 = col_up_1;
-                end
-
+            begin
+                row_offset[0] = -3'd2;
+                row_offset[1] = -3'd1;
+                row_offset[2] = 3'd1;
+                col_offset[0] = -3'd2;
+                col_offset[1] = -3'd1;
+                col_offset[2] = 3'd1;
+            end
             DIAG_RIGHT_UP_3:
-                begin
-                    row_piece_2 = row_left_1;
-                    col_piece_2 = col_down_1;
-
-                    row_piece_3 = row_right_1;
-                    col_piece_3 = col_up_1;
-
-                    row_piece_4 = row_right_2;
-                    col_piece_4 = col_up_2;
-                end
-
+            begin
+                row_offset[0] = -3'd1;
+                row_offset[1] = 3'd1;
+                row_offset[2] = 3'd2;
+                col_offset[0] = -3'd1;
+                col_offset[1] = 3'd1;
+                col_offset[2] = 3'd2;
+            end
             DIAG_RIGHT_UP_4:
-                begin
-                    row_piece_2 = row_right_1;
-                    col_piece_2 = col_up_1;
-
-                    row_piece_3 = row_right_2;
-                    col_piece_3 = col_up_2;
-
-                    row_piece_4 = row_right_3;
-                    col_piece_4 = col_up_3;
-                end
-
+            begin
+                row_offset[0] = 3'd1;
+                row_offset[1] = 3'd2;
+                row_offset[2] = 3'd3;
+                col_offset[0] = 3'd1;
+                col_offset[1] = 3'd2;
+                col_offset[2] = 3'd3;
+            end
             DIAG_LEFT_DOWN_1:
-                begin
-                    row_piece_2 = row_left_3;
-                    col_piece_2 = col_up_3;
-
-                    row_piece_3 = row_left_2;
-                    col_piece_3 = col_up_2;
-
-                    row_piece_4 = row_left_1;
-                    col_piece_4 = col_up_1;
-                end
-            
+            begin
+                row_offset[0] = -3'd3;
+                row_offset[1] = -3'd2;
+                row_offset[2] = -3'd1;
+                col_offset[0] = 3'd3;
+                col_offset[1] = 3'd2;
+                col_offset[2] = 3'd1;
+            end
             DIAG_LEFT_DOWN_2:
-                begin
-                    row_piece_2 = row_left_2;
-                    col_piece_2 = col_up_2;
-
-                    row_piece_3 = row_left_1;
-                    col_piece_3 = col_up_1;
-
-                    row_piece_4 = row_right_1;
-                    col_piece_4 = col_down_1;
-                end
-
+            begin
+                row_offset[0] = -3'd2;
+                row_offset[1] = -3'd1;
+                row_offset[2] = 3'd1;
+                col_offset[0] = 3'd2;
+                col_offset[1] = 3'd1;
+                col_offset[2] = -3'd1;
+            end
             DIAG_LEFT_DOWN_3:
-                begin
-                    row_piece_2 = row_left_1;
-                    col_piece_2 = col_up_1;
-
-                    row_piece_3 = row_right_1;
-                    col_piece_3 = col_down_1;
-
-                    row_piece_4 = row_right_2;
-                    col_piece_4 = col_down_2;
-                end
-
+            begin
+                row_offset[0] = -3'd1;
+                row_offset[1] = 3'd1;
+                row_offset[2] = 3'd2;
+                col_offset[0] = 3'd1;
+                col_offset[1] = -3'd1;
+                col_offset[2] = -3'd2;
+            end
             DIAG_LEFT_DOWN_4:
-                begin
-                    row_piece_2 = row_right_1;
-                    col_piece_2 = col_down_1;
-
-                    row_piece_3 = row_right_2;
-                    col_piece_3 = col_down_2;
-
-                    row_piece_4 = row_right_3;
-                    col_piece_4 = col_down_3;
-                end
-
+            begin
+                row_offset[0] = 3'd1;
+                row_offset[1] = 3'd2;
+                row_offset[2] = 3'd3;
+                col_offset[0] = -3'd1;
+                col_offset[1] = -3'd2;
+                col_offset[2] = -3'd3;
+            end
             default:
-                begin
-                    row_piece_2 = row;
-                    col_piece_2 = col;
-
-                    row_piece_3 = row;
-                    col_piece_3 = col;
-
-                    row_piece_4 = row;
-                    col_piece_4 = col;
-                end
-                
+            begin
+                row_offset[0] = 3'd0;
+                row_offset[1] = 3'd0;
+                row_offset[2] = 3'd0;
+                col_offset[0] = 3'd0;
+                col_offset[1] = 3'd0;
+                col_offset[2] = 3'd0;
+            end
         endcase
     end
+
+    // Assign coordinates using offsets
+    assign row_piece_2 = row + row_offset[0];
+    assign row_piece_3 = row + row_offset[1];
+    assign row_piece_4 = row + row_offset[2];
+    assign col_piece_2 = col + col_offset[0];
+    assign col_piece_3 = col + col_offset[1];
+    assign col_piece_4 = col + col_offset[2];
 
 
 endmodule

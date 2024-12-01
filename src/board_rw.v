@@ -5,13 +5,16 @@ module board_rw (
     row,
     col,
     data_in,
-    write
+    write,
     drop_allowed,
-    data_out,
-)
+    current_row,
+    data_out
+);
+
     localparam ROWS = 8;
     localparam COLS = 8;
     localparam COL_BITS = 3;
+    localparam ROW_BITS = 3;
 
     input clk;
     input rst_n;
@@ -21,6 +24,7 @@ module board_rw (
     input [1:0] data_in;
     input write;
     output drop_allowed;
+    output [2:0] current_row;
     output [1:0] data_out;
 
     reg [1:0] board [0:ROWS - 1][0:COLS - 1];
@@ -40,6 +44,7 @@ module board_rw (
 	assign rst_board_done = rst_board_counter[6];
 
     assign row_to_drop = column_counters[col];
+    assign current_row = row_to_drop[ROW_BITS - 1:0];
 	assign drop_allowed = row_to_drop < ROWS;
 
     assign data_out = enable ? board[row][col] : 2'b00;
@@ -78,7 +83,6 @@ module board_rw (
 			if (!rst_board_done)
 			begin
 				board[rst_row_counter][rst_col_counter] <= 2'b00;
-				winning_pieces[rst_row_counter][rst_col_counter] <= 1'b0;
 			end
         end
         else

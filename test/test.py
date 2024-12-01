@@ -238,7 +238,7 @@ async def test_vertical_win(dut):
     await make_move(dut, 1)
     await make_move(dut, 0) # Player 1 wins
 
-    print_board(dut)
+    # print_board(dut)
 
     # Check the output
     game = dut.user_project.game_inst.game
@@ -288,7 +288,7 @@ async def test_double_diagonal_win(dut):
     await make_move(dut, 2)
     await make_move(dut, 2) # Player 1 wins
 
-    print_board(dut)
+    # print_board(dut)
 
     # Check the output
     game = dut.user_project.game_inst.game
@@ -350,7 +350,7 @@ async def test_horizontal_win(dut):
 
     await make_move(dut, 4)
 
-    print_board(dut)
+    # print_board(dut)
 
     # Check the output
     assert winner.value == 2

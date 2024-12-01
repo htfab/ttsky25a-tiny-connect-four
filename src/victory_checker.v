@@ -9,7 +9,7 @@ module victory_checker (
     col_read,
     done_checking,
     winner
-)
+);
 
     input clk;
     input rst_n;
@@ -20,7 +20,7 @@ module victory_checker (
 
     output [2:0] row_read;
     output [2:0] col_read;
-    output done_checking;
+    output reg done_checking;
     output reg [1:0] winner;
 
     // Victory checking states
@@ -58,11 +58,11 @@ module victory_checker (
     reg [3:0] check_state;
     reg e_direction_checker;
 
-    wire winner_check;
+    wire [1:0] winner_check;
 
     check_directions check_directions_inst (
-		.current_row(current_row),
-		.current_col(current_col),
+		.current_row(move_row),
+		.current_col(move_col),
 		.check_down(check_down),
 		.check_row_1(check_row_1),
 		.check_row_2(check_row_2),

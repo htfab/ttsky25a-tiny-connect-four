@@ -92,7 +92,7 @@ module connect_four_top (
 		.y_count(v_count)
 	);
 
-	connect_four game(
+	connect_four game (
 		.clk(clk_25MHz),
 		.rst_n(rst_n),
 		.move_right(move_right),
@@ -102,7 +102,7 @@ module connect_four_top (
 		.col_read(col_idx),
 		.data_out(piece_color),
 		.port_current_col(current_col),
-		.port_current_player(current_player),
+		.port_current_player(current_player)
 	);
 
 	wire [9:0] cell_center_x;

@@ -78,7 +78,6 @@ module connect_four (
 	assign port_current_col = current_col;
 	assign port_current_player = current_player;
 
-	assign current_row = row_to_drop[ROW_BITS - 1:0];
 	assign next_col_right = (current_col == LAST_COL ? 3'b000 : current_col + 3'b001);
 	assign next_col_left = (current_col == 0 ? LAST_COL : current_col - 3'b001);
 	assign next_player = (current_player == PLAYER1 ? PLAYER2 : PLAYER1);
@@ -127,10 +126,12 @@ module connect_four (
 	always @(posedge clk or negedge rst_n)
 	begin
 		if (!rst_n)
+		begin
 			current_state <= ST_IDLE;
 			moved_player <= EMPTY;
 			current_player <= PLAYER1;
 			start_checking <= 1'b0;
+		end
 		else
 			case (current_state)
 				ST_IDLE:
@@ -143,10 +144,12 @@ module connect_four (
 				begin
 					write_to_board <= 1'b0;
 					if (drop_allowed)
+					begin
 						current_state <= ST_CHECKING_VICTORY;
 						moved_player <= current_player;
 						current_player <= next_player;
 						start_checking <= 1'b1;
+					end
 					else
 						current_state <= ST_IDLE;
 				end
@@ -189,7 +192,7 @@ module connect_four (
 		.row_read(row_to_get),
 		.col_read(col_to_get),
 		.done_checking(done_checking),
-		.winner(winner),
+		.winner(winner)
 	);
 
 	board_rw board_rw_inst (
@@ -201,6 +204,7 @@ module connect_four (
 		.data_in(moved_player),
 		.write(write_to_board),
 		.drop_allowed(drop_allowed),
+		.current_row(current_row),
 		.data_out(mem_data)
 	);
 
