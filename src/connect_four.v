@@ -9,7 +9,7 @@ module connect_four (
 	data_out,
 	game_over,
 	port_current_col,
-	port_current_player,
+	port_current_player
 );
 
 	parameter ROWS = 8;
@@ -104,7 +104,6 @@ module connect_four (
 	                  current_state == ST_CHECKING_VICTORY? col_to_get :
 					  col_read);
 	
-
 	// Synchronizers to detect rising edge of input from user
 	always @(posedge clk or negedge rst_n)
 	begin
@@ -154,6 +153,7 @@ module connect_four (
 				end
 				ST_CHECKING_VICTORY:
 				begin
+					start_checking <= 1'b0;
 					if (done_checking)
 					begin
 						if (winner != EMPTY)

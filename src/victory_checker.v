@@ -57,6 +57,7 @@ module victory_checker (
 
     reg [3:0] check_state;
     reg e_direction_checker;
+    wire checking_direction_done;
 
     wire [1:0] winner_check;
 
@@ -81,13 +82,14 @@ module victory_checker (
     direction_checker direction_checker_inst (
         .clk(clk),
         .rst_n(rst_n),
-        .start(start),
+        .start(e_direction_checker),
         .row(move_row),
         .col(move_col),
         .direction(check_state),
         .data_in(data_in),
         .row_read(row_read),
         .col_read(col_read),
+        .finished_checking(checking_direction_done),
         .winner(winner_check)
     );
 
@@ -119,77 +121,115 @@ module victory_checker (
             case (check_state)
                 ST_IDLE: 
                 begin
+                    done_checking <= 1'b0;
                     if (start)
                     begin
-                        done_checking <= 1'b0;
                         check_state <= ST_CHECKING_DOWN;
                         e_direction_checker <= check_down;
                     end
                 end
                 ST_CHECKING_DOWN:
                 begin
-                    check_state <= ST_CHECKING_ROW_1;
-                    e_direction_checker <= check_row_1;
+                    if (checking_direction_done | !check_down)
+                    begin
+                        check_state <= ST_CHECKING_ROW_1;
+                        e_direction_checker <= check_row_1;
+                    end
                 end
                 ST_CHECKING_ROW_1:
                 begin
-                    check_state <= ST_CHECKING_ROW_2;
-                    e_direction_checker <= check_row_2;
+                    if (checking_direction_done | !check_row_1)
+                    begin
+                        check_state <= ST_CHECKING_ROW_2;
+                        e_direction_checker <= check_row_2;
+                    end
                 end
                 ST_CHECKING_ROW_2:
                 begin
-                    check_state <= ST_CHECKING_ROW_3;
-                    e_direction_checker <= check_row_3;
+                    if (checking_direction_done | !check_row_2)
+                    begin
+                        check_state <= ST_CHECKING_ROW_3;
+                        e_direction_checker <= check_row_3;
+                    end
                 end
                 ST_CHECKING_ROW_3:
                 begin
-                    check_state <= ST_CHECKING_ROW_4;
-                    e_direction_checker <= check_row_4;
+                    if (checking_direction_done | !check_row_3)
+                    begin
+                        check_state <= ST_CHECKING_ROW_4;
+                        e_direction_checker <= check_row_4;
+                    end
                 end
                 ST_CHECKING_ROW_4:
                 begin
-                    check_state <= ST_CHECKING_DIAG_RIGHT_UP_1;
-                    e_direction_checker <= check_diag_right_up_1;
+                    if (checking_direction_done | !check_row_4)
+                    begin
+                        check_state <= ST_CHECKING_DIAG_RIGHT_UP_1;
+                        e_direction_checker <= check_diag_right_up_1;
+                    end
                 end
                 ST_CHECKING_DIAG_RIGHT_UP_1:
                 begin
-                    check_state <= ST_CHECKING_DIAG_RIGHT_UP_2;
-                    e_direction_checker <= check_diag_right_up_2;
+                    if (checking_direction_done | !check_diag_right_up_1)
+                    begin
+                        check_state <= ST_CHECKING_DIAG_RIGHT_UP_2;
+                        e_direction_checker <= check_diag_right_up_2;
+                    end
                 end
                 ST_CHECKING_DIAG_RIGHT_UP_2:
                 begin
-                    check_state <= ST_CHECKING_DIAG_RIGHT_UP_3;
-                    e_direction_checker <= check_diag_right_up_3;
+                    if (checking_direction_done | !check_diag_right_up_2)
+                    begin
+                        check_state <= ST_CHECKING_DIAG_RIGHT_UP_3;
+                        e_direction_checker <= check_diag_right_up_3;
+                    end
                 end
                 ST_CHECKING_DIAG_RIGHT_UP_3:
                 begin
-                    check_state <= ST_CHECKING_DIAG_RIGHT_UP_4;
-                    e_direction_checker <= check_diag_right_up_4;
+                    if (checking_direction_done | !check_diag_right_up_3)
+                    begin
+                        check_state <= ST_CHECKING_DIAG_RIGHT_UP_4;
+                        e_direction_checker <= check_diag_right_up_4;
+                    end
                 end
                 ST_CHECKING_DIAG_RIGHT_UP_4:
                 begin
-                    check_state <= ST_CHECKING_DIAG_LEFT_DOWN_1;
-                    e_direction_checker <= check_diag_left_down_1;
+                    if (checking_direction_done | !check_diag_right_up_4)
+                    begin
+                        check_state <= ST_CHECKING_DIAG_LEFT_DOWN_1;
+                        e_direction_checker <= check_diag_left_down_1;
+                    end
                 end
                 ST_CHECKING_DIAG_LEFT_DOWN_1:
                 begin
-                    check_state <= ST_CHECKING_DIAG_LEFT_DOWN_2;
-                    e_direction_checker <= check_diag_left_down_2;
+                    if (checking_direction_done | !check_diag_left_down_1)
+                    begin
+                        check_state <= ST_CHECKING_DIAG_LEFT_DOWN_2;
+                        e_direction_checker <= check_diag_left_down_2;
+                    end
                 end
                 ST_CHECKING_DIAG_LEFT_DOWN_2:
                 begin
-                    check_state <= ST_CHECKING_DIAG_LEFT_DOWN_3;
-                    e_direction_checker <= check_diag_left_down_3;
+                    if (checking_direction_done | !check_diag_left_down_2)
+                    begin
+                        check_state <= ST_CHECKING_DIAG_LEFT_DOWN_3;
+                        e_direction_checker <= check_diag_left_down_3;
+                    end
                 end
                 ST_CHECKING_DIAG_LEFT_DOWN_3:
                 begin
-                    check_state <= ST_CHECKING_DIAG_LEFT_DOWN_4;
-                    e_direction_checker <= check_diag_left_down_4;
+                    if (checking_direction_done | !check_diag_left_down_3)
+                    begin
+                        check_state <= ST_CHECKING_DIAG_LEFT_DOWN_4;
+                        e_direction_checker <= check_diag_left_down_4;
+                    end
                 end
                 ST_CHECKING_DIAG_LEFT_DOWN_4:
                 begin
-                    check_state <= ST_CHECKING_DONE;
-                    e_direction_checker <= 1'b0;
+                    if (checking_direction_done | !check_diag_left_down_4)
+                    begin
+                        check_state <= ST_CHECKING_DONE;
+                    end
                 end
                 ST_CHECKING_DONE:
                 begin

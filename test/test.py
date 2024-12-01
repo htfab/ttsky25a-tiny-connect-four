@@ -50,7 +50,7 @@ async def make_move(dut, column):
     dut._log.info(f"Dropping piece in column {column}. row {int(row)}")
     await drop_piece(dut)
     # Wait for the piece to drop
-    await ClockCycles(dut.clk, 20)
+    await ClockCycles(dut.clk, 100)
 
 def print_board(dut):
     """Helper function to print the board"""
@@ -98,7 +98,7 @@ async def test_reset(dut):
     assert top_board.value == 0
 
 
-@cocotb.test(skip=True)
+@cocotb.test()
 async def test_move_right(dut):
     """Test moving the piece right"""
     dut._log.info("Start")
@@ -131,7 +131,7 @@ async def test_move_right(dut):
     assert current_col.value == 1
 
 
-@cocotb.test(skip=True)
+@cocotb.test()
 async def test_move_right_and_wrap_around(dut):
     """Test moving the piece right and wrapping around"""
     dut._log.info("Start")
@@ -170,7 +170,7 @@ async def test_move_right_and_wrap_around(dut):
     assert current_col.value == 0
 
 
-@cocotb.test(skip=True)
+@cocotb.test()
 async def test_move_left_and_wrap_around(dut):
     """Test moving the piece left and wrapping around"""
     dut._log.info("Start")
@@ -253,13 +253,11 @@ async def test_vertical_win(dut):
     print_board(dut)
 
     # Check the output
-    
-
     assert winner.value == 1
     assert game_over.value == 1
 
 
-@cocotb.test(skip=True)
+@cocotb.test()
 async def test_double_diagonal_win(dut):
     dut._log.info("Start")
 
@@ -309,7 +307,7 @@ async def test_double_diagonal_win(dut):
     assert game_over.value == 1
 
 
-@cocotb.test(skip=True)
+@cocotb.test()
 async def test_horizontal_win(dut):
     """Test a horizontal win of player 2"""
     dut._log.info("Start")

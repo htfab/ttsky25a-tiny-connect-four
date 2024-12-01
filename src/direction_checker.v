@@ -8,6 +8,7 @@ module direction_checker (
     data_in,
     row_read,
     col_read,
+    finished_checking,
     winner
 );
 
@@ -21,6 +22,7 @@ module direction_checker (
 
     output reg [2:0] row_read;
     output reg [2:0] col_read;
+    output reg finished_checking;
     output reg [1:0] winner;
 
     localparam DOWN = 4'b0001;
@@ -61,7 +63,6 @@ module direction_checker (
     reg [2:0] row_offset [0:2];
     reg [2:0] col_offset [0:2];
 
-
     always @(posedge clk or negedge rst_n)
     begin
         if (!rst_n)
@@ -69,12 +70,14 @@ module direction_checker (
             current_state <= ST_IDLE;
             row_read <= 3'b000;
             col_read <= 3'b000;
+            finished_checking <= 1'b0;
         end
         else
         begin
             case (current_state)
                 ST_IDLE:
                 begin
+                    finished_checking <= 1'b0;
                     winner <= 2'b00;
                     piece1 <= 2'b00;
                     piece2 <= 2'b00;
@@ -117,6 +120,7 @@ module direction_checker (
                 begin
                     if (piece1 == piece2 & piece2 == piece3 & piece3 == piece4)
                         winner <= piece1;
+                    finished_checking <= 1'b1;
                     current_state <= ST_IDLE;
                 end
                 default:
@@ -124,7 +128,6 @@ module direction_checker (
             endcase
         end
     end
-
 
     always @(*) begin
         case (direction)
