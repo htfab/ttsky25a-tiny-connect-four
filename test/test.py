@@ -60,9 +60,11 @@ def print_board(dut):
     for row in range(0,8):
         row_str = ""
         for col in range(0,8):
-            start_index = 127 - ((8 * row + (7-col)) * 2)
+            start_index = ((8 * row + (7-col)) * 2 + 1)
             end_index = start_index - 1
-            piece_color = LogicArray(board.value[start_index:end_index], Range(start_index, "downto", end_index))
+            msb = board.value[start_index]
+            lsb = board.value[end_index]
+            piece_color = msb << 1 | lsb
             row_str += "X" if piece_color == 1 else "O" if piece_color == 2 else "."
         dut._log.info(row_str)
 
