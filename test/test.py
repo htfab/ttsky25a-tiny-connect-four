@@ -4,6 +4,7 @@
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles
+from cocotb.types import LogicArray, Range
 
 DROP_PIECE = 0b00000110
 MOVE_RIGHT = 0b00000101
@@ -61,7 +62,7 @@ def print_board(dut):
         for col in range(0,8):
             start_index = 127 - ((8 * row + (7-col)) * 2)
             end_index = start_index - 1
-            piece_color = board.value[start_index:end_index]
+            piece_color = LogicArray(board.value[start_index:end_index], Range(start_index, "downto", end_index))
             row_str += "X" if piece_color == 1 else "O" if piece_color == 2 else "."
         dut._log.info(row_str)
 
