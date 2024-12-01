@@ -46,7 +46,7 @@ module connect_four (
 
 	// Game state variables
 	reg [1:0] current_player;
-	wire [ROW_BITS-1:0] mem_row_out;
+	wire [ROW_BITS:0] row_to_drop;
 	reg [ROW_BITS-1:0] current_row;
 	reg  [COL_BITS-1:0] current_col;
 	reg [1:0] winner;
@@ -100,6 +100,10 @@ module connect_four (
 	assign mem_row = (current_state == ST_ADDING_PIECE ? current_row   :
 	                  current_state == ST_CHECKING_VICTORY? row_to_get : 
 					  row_read);
+
+	// If we are adding a piece, we want to read the row that the piece will be dropped
+	// mem_col is the column to drop the piece
+	// row_to_drop is the row that the piece will be dropped
 	assign mem_col = (current_state == ST_ADDING_PIECE ? current_col   :
 	                  current_state == ST_CHECKING_VICTORY? col_to_get :
 					  col_read);
@@ -174,9 +178,9 @@ module connect_four (
 	begin
 		if (!rst_n)
 			current_row <= 3'b000;
-		else if (current_state == ST_IDLE)
+		else if (current_state == ST_ADDING_PIECE)
 		begin
-			current_row <= mem_row_out;
+			current_row <= row_to_drop[ROW_BITS-1:0];
 		end
 	end
 
@@ -216,7 +220,7 @@ module connect_four (
 		.data_in(current_player),
 		.write(write_to_board),
 		.drop_allowed(drop_allowed),
-		.current_row(mem_row_out),
+		.row_to_drop(row_to_drop),
 		.data_out(mem_data)
 	);
 

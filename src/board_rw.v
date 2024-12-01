@@ -7,7 +7,7 @@ module board_rw (
     data_in,
     write,
     drop_allowed,
-    current_row,
+    row_to_drop,
     data_out
 );
 
@@ -24,7 +24,7 @@ module board_rw (
     input [1:0] data_in;
     input write;
     output drop_allowed;
-    output [2:0] current_row;
+    output [3:0] row_to_drop;
     output [1:0] data_out;
 
     reg [127:0] board;
@@ -44,7 +44,6 @@ module board_rw (
 	assign rst_board_done = rst_board_counter[6];
 
     assign row_to_drop = column_counters[col];
-    assign current_row = row_to_drop[ROW_BITS - 1:0];
 	assign drop_allowed = row_to_drop < ROWS;
 
     assign data_out = enable ? board[(8*row + col)*2+:2] : 2'b00;
