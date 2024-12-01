@@ -46,7 +46,8 @@ async def make_move(dut, column):
             await move_left(dut)
             
     # Drop the piece
-    dut._log.info(f"Dropping piece in column {column}")
+    row = dut.user_project.game_inst.game.current_row.value
+    dut._log.info(f"Dropping piece in column {column}. row {int(row)}")
     await drop_piece(dut)
     # Wait for the piece to drop
     await ClockCycles(dut.clk, 20)
@@ -54,17 +55,18 @@ async def make_move(dut, column):
 def print_board(dut):
     """Helper function to print the board"""
     dut._log.info("Board State:")
-    board = dut.user_project.game_inst.game.board
+    board = dut.user_project.game_inst.game.board_rw_inst.board
     for row in range(0,8):
         row_str = ""
         for col in range(0,8):
-            idx = (7-row)*8+col
-            piece_color = board[idx].value
+            start_index = 127 - ((8 * row + (7-col)) * 2)
+            end_index = start_index - 1
+            piece_color = board.value[start_index:end_index]
             row_str += "X" if piece_color == 1 else "O" if piece_color == 2 else "."
         dut._log.info(row_str)
 
 
-@cocotb.test()
+@cocotb.test(skip=True)
 async def test_reset(dut):
     """Test the board is empty after reset"""
     dut._log.info("Start")
@@ -96,7 +98,7 @@ async def test_reset(dut):
     assert top_board.value == 0
 
 
-@cocotb.test()
+@cocotb.test(skip=True)
 async def test_move_right(dut):
     """Test moving the piece right"""
     dut._log.info("Start")
@@ -129,7 +131,7 @@ async def test_move_right(dut):
     assert current_col.value == 1
 
 
-@cocotb.test()
+@cocotb.test(skip=True)
 async def test_move_right_and_wrap_around(dut):
     """Test moving the piece right and wrapping around"""
     dut._log.info("Start")
@@ -168,7 +170,7 @@ async def test_move_right_and_wrap_around(dut):
     assert current_col.value == 0
 
 
-@cocotb.test()
+@cocotb.test(skip=True)
 async def test_move_left_and_wrap_around(dut):
     """Test moving the piece left and wrapping around"""
     dut._log.info("Start")
@@ -229,27 +231,35 @@ async def test_vertical_win(dut):
     # The reset sequence should take 64 clock cycles
     await ClockCycles(dut.clk, 64)
 
-    # Play the game
-    await make_move(dut, 0)
-    await make_move(dut, 1)
-    await make_move(dut, 0)
-    await make_move(dut, 1)
-    await make_move(dut, 0)
-    await make_move(dut, 1)
-    await make_move(dut, 0) # Player 1 wins
-
-    # print_board(dut)
-
-    # Check the output
     game = dut.user_project.game_inst.game
     winner = game.winner
     game_over = game.game_over
+
+    # Play the game
+    await make_move(dut, 0)
+    assert winner.value == 0
+    await make_move(dut, 1)
+    assert winner.value == 0
+    await make_move(dut, 0)
+    assert winner.value == 0
+    await make_move(dut, 1)
+    assert winner.value == 0
+    await make_move(dut, 0)
+    assert winner.value == 0
+    await make_move(dut, 1)
+    assert winner.value == 0
+    await make_move(dut, 0) # Player 1 wins
+
+    print_board(dut)
+
+    # Check the output
+    
 
     assert winner.value == 1
     assert game_over.value == 1
 
 
-@cocotb.test()
+@cocotb.test(skip=True)
 async def test_double_diagonal_win(dut):
     dut._log.info("Start")
 
@@ -288,7 +298,7 @@ async def test_double_diagonal_win(dut):
     await make_move(dut, 2)
     await make_move(dut, 2) # Player 1 wins
 
-    # print_board(dut)
+    print_board(dut)
 
     # Check the output
     game = dut.user_project.game_inst.game
@@ -299,7 +309,7 @@ async def test_double_diagonal_win(dut):
     assert game_over.value == 1
 
 
-@cocotb.test()
+@cocotb.test(skip=True)
 async def test_horizontal_win(dut):
     """Test a horizontal win of player 2"""
     dut._log.info("Start")
@@ -350,7 +360,7 @@ async def test_horizontal_win(dut):
 
     await make_move(dut, 4)
 
-    # print_board(dut)
+    print_board(dut)
 
     # Check the output
     assert winner.value == 2

@@ -112,7 +112,7 @@ module victory_checker (
 		begin
 			check_state <= ST_IDLE;
             e_direction_checker <= 1'b0;
-            done_checking <= 1'b1;
+            done_checking <= 1'b0;
 		end
 		else
 		begin

@@ -27,7 +27,7 @@ module board_rw (
     output [2:0] current_row;
     output [1:0] data_out;
 
-    reg [1:0] board [0:ROWS - 1][0:COLS - 1];
+    reg [127:0] board;
 
     reg  [6:0] rst_board_counter;
     reg  [COL_BITS:0] rst_column_counter;
@@ -47,7 +47,7 @@ module board_rw (
     assign current_row = row_to_drop[ROW_BITS - 1:0];
 	assign drop_allowed = row_to_drop < ROWS;
 
-    assign data_out = enable ? board[row][col] : 2'b00;
+    assign data_out = enable ? board[(8*row + col)*2+:2] : 2'b00;
 
     // Counter for sequential synchronous reset of column counter
 	always @(posedge clk or negedge rst_n)
@@ -74,23 +74,17 @@ module board_rw (
 	end
 
     // Sequential write to board
-    always @(posedge clk or negedge rst_n)
+    always @(posedge clk)
     begin
-        if (!rst_n)
-        begin
-            if (rst_column_counter[COL_BITS] == 1'b0)
-				column_counters[rst_column_counter[2:0]] <= {ROW_BITS+1{1'b0}};
-			if (!rst_board_done)
-			begin
-				board[rst_row_counter][rst_col_counter] <= 2'b00;
-			end
-        end
+        if (rst_column_counter[COL_BITS] == 1'b0)
+            column_counters[rst_column_counter[2:0]] <= {ROW_BITS+1{1'b0}};
+        if (!rst_board_done)
+            board[(8*rst_row_counter + rst_col_counter)*2 +: 2] <= 2'b00;
         else
+        if (enable & write & drop_allowed)
         begin
-            if (enable & write & drop_allowed)
-            begin
-                board[row][col] <= data_in;
-            end
+            board[(8*column_counters[col] + col)*2 +: 2] <= data_in;
+            column_counters[col] <= column_counters[col] + 1;
         end
     end
 

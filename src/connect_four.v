@@ -46,7 +46,8 @@ module connect_four (
 
 	// Game state variables
 	reg [1:0] current_player;
-	wire [ROW_BITS-1:0] current_row;
+	wire [ROW_BITS-1:0] mem_row_out;
+	reg [ROW_BITS-1:0] current_row;
 	reg  [COL_BITS-1:0] current_col;
 	reg [1:0] winner;
 	wire [2:0] next_col_right;
@@ -92,7 +93,6 @@ module connect_four (
 	// Victory checker interface
 	wire [2:0] row_to_get;
 	wire [2:0] col_to_get;
-	reg  [1:0] moved_player;
 	reg  start_checking;
 	wire done_checking;
 
@@ -128,9 +128,9 @@ module connect_four (
 		if (!rst_n)
 		begin
 			current_state <= ST_IDLE;
-			moved_player <= EMPTY;
 			current_player <= PLAYER1;
 			start_checking <= 1'b0;
+			write_to_board <= 1'b0;
 		end
 		else
 			case (current_state)
@@ -146,7 +146,6 @@ module connect_four (
 					if (drop_allowed)
 					begin
 						current_state <= ST_CHECKING_VICTORY;
-						moved_player <= current_player;
 						current_player <= next_player;
 						start_checking <= 1'b1;
 					end
@@ -162,10 +161,23 @@ module connect_four (
 						else
 							current_state <= ST_IDLE;
 					end
+					else
+						current_state <= ST_CHECKING_VICTORY;
 				end
 				ST_WIN:
 					current_state <= ST_WIN;
 			endcase
+	end
+
+	// Current row to drop the piece
+	always @(posedge clk or negedge rst_n)
+	begin
+		if (!rst_n)
+			current_row <= 3'b000;
+		else if (current_state == ST_IDLE)
+		begin
+			current_row <= mem_row_out;
+		end
 	end
 
 	// Column to drop the piece
@@ -201,10 +213,10 @@ module connect_four (
 		.enable(1'b1),
 		.row(mem_row),
 		.col(mem_col),
-		.data_in(moved_player),
+		.data_in(current_player),
 		.write(write_to_board),
 		.drop_allowed(drop_allowed),
-		.current_row(current_row),
+		.current_row(mem_row_out),
 		.data_out(mem_data)
 	);
 
