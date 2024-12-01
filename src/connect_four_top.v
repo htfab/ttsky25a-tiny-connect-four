@@ -101,6 +101,7 @@ module connect_four_top (
 		.row_read(row_idx),
 		.col_read(col_idx),
 		.data_out(piece_color),
+		.game_over(game_over),
 		.port_current_col(current_col),
 		.port_current_player(current_player)
 	);

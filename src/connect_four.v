@@ -125,6 +125,15 @@ module connect_four (
 		end
 	end
 
+	// Output board memory data
+	always @(posedge clk or negedge rst_n)
+	begin
+		if (!rst_n)
+			data_out <= 2'b00;
+		else
+			data_out <= mem_data;
+	end
+
 	// State Machine to control the game
 	always @(posedge clk or negedge rst_n)
 	begin
