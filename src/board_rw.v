@@ -28,7 +28,7 @@ module board_rw (
     output [1:0] data_out;
 
     // 8x8 board
-    reg [ROWS*COLS-1:0] board;
+    reg [ROWS*COLS*2-1:0] board;
 
     // Counter for sequential synchronous reset of board
     reg  [6:0] rst_board_counter;
