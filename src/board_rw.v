@@ -2,26 +2,28 @@ module board_rw (
     clk,
     rst_n,
     enable,
-    row,
-    col,
+    w_row,
+    w_col,
     data_in,
     write,
-    board_out
+    r_row,
+    r_col,
+    data_out
 );
 
     localparam ROWS = 8;
     localparam COLS = 8;
-    localparam COL_BITS = 3;
-    localparam ROW_BITS = 3;
 
     input clk;
     input rst_n;
     input enable;
-    input [2:0] row;
-    input [2:0] col;
+    input [2:0] w_row;
+    input [2:0] w_col;
     input [1:0] data_in;
     input write;
-    output [ROWS*COLS*2-1:0] board_out;
+    input [2:0] r_row;
+    input [2:0] r_col;
+    output [1:0] data_out;
 
     // 8x8 board
     reg [ROWS*COLS*2-1:0] board;
@@ -40,7 +42,7 @@ module board_rw (
 	assign rst_board_done = rst_board_counter[6];
 
     // Read from board
-    assign board_out = board;
+    assign data_out = board[(8*r_row + r_col)*2 +: 2];
 
 	// Counter for sequential synchronous reset of board counter
 	always @(posedge clk or negedge rst_n)
@@ -64,7 +66,7 @@ module board_rw (
         // Write to board
         if (enable & write)
         begin
-            board[(8*row + col)*2 +: 2] <= data_in;
+            board[(8*w_row + w_col)*2 +: 2] <= data_in;
         end
     end
 

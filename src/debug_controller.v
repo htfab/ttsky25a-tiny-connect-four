@@ -1,10 +1,13 @@
-module debug_controller #(parameter ROWS=8, parameter COLS=8) (
+module debug_controller (
     clk,
     rst_n,
     e_debug,
-    board_in,
+    piece_data,
     current_col,
     winner,
+    d_r_row,
+    d_r_col,
+    read_board,
     uio_in,
     uio_out,
     uio_oe
@@ -13,11 +16,14 @@ module debug_controller #(parameter ROWS=8, parameter COLS=8) (
     input clk;
     input rst_n;
     input e_debug;
-    input [ROWS*COLS*2-1:0] board_in;
+    input [1:0] piece_data;
     input [2:0] current_col;
     input [1:0] winner;
     input [7:0] uio_in;
 
+    output wire [2:0] d_r_row;
+    output wire [2:0] d_r_col;
+    output wire read_board;
     output reg [7:0] uio_out;
     output reg [7:0] uio_oe;
 
@@ -31,15 +37,12 @@ module debug_controller #(parameter ROWS=8, parameter COLS=8) (
     reg data_out_en;
     reg [7:0] data_out;
 
-    wire [2:0] read_row;
-    wire [2:0] read_col;
-    wire [1:0] read_data;
-
     assign uio_out = data_out;
     assign uio_oe  = {{data_out_en ? 6'b111111 : 6'b000000}, 2'b00};
 
-    assign read_row = data_in[5:3];
-    assign read_col = data_in[2:0];
+    assign d_r_row = data_in[5:3];
+    assign d_r_col = data_in[2:0];
+    assign read_board = (debug_cmd == CMD_READ_BOARD);
   
     always @(posedge clk or negedge rst_n) 
     begin
@@ -54,7 +57,7 @@ module debug_controller #(parameter ROWS=8, parameter COLS=8) (
                 case (debug_cmd)
                     CMD_READ_BOARD: 
                     begin
-                        data_out <= {6'b0, read_data};
+                        data_out <= {6'b0, piece_data};
                         data_out_en <= 1'b1;
                     end
                     CMD_READ_CURRENT_COL:
@@ -77,11 +80,5 @@ module debug_controller #(parameter ROWS=8, parameter COLS=8) (
         end
     end
 
-    board_reader #(.ROWS(ROWS), .COLS(COLS)) board_reader_debug_inst (
-        .board_in(board_in),
-        .row(read_row),
-        .col(read_col),
-        .data_out(read_data)
-    );
 
 endmodule

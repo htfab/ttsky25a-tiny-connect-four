@@ -15,6 +15,7 @@
 - Avoid massive combinational asynchronous logic, and prefer sequential logic operations. It makes a massive difference in the required chip area, and allows for higher density.
 - Avoid complicated memory structures such as 2D arrays if possible, and prefer simpler alternatives such as 1D vectors.
 - Seperate complicated logic to individual components for better reusablity and code clarity.
+- Tried routing the board data across the design with a 2 bit bus and by addressing the index, and that shrunk the required chip area by alot. Then changed it to be routed as a 128 bit bus, and the wire length increased heavily. Routing big busses to multiple instances can lead to using a lot of area on the chip.
 
 ### Testing
 - Write tests suitable for gate level testing from the get go.

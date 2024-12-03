@@ -5,14 +5,17 @@ module connect_four_top #(ROWS=8, COLS=8) (
 	move_left,
 	drop_piece,
 	e_debug,
+	read_board,
+	d_r_row,
+	d_r_col,
 	vga_hsync,
 	vga_vsync,
 	vga_r,
 	vga_g,
 	vga_b,
-	board_out,
 	current_col_out,
-	winner
+	winner,
+	d_piece_data
 );
 
 	input wire clk_25MHz;
@@ -21,15 +24,18 @@ module connect_four_top #(ROWS=8, COLS=8) (
 	input wire move_left;
 	input wire drop_piece;
 	input wire e_debug;
+	input wire read_board;
+	input wire [2:0] d_r_row;
+	input wire [2:0] d_r_col;
 
 	output wire vga_hsync;
 	output wire vga_vsync;
 	output reg [1:0] vga_r;
 	output reg [1:0] vga_g;
 	output reg [1:0] vga_b;
-	output wire [ROWS*COLS*2-1:0] board_out;
 	output wire [2:0] current_col_out;
 	output wire [1:0] winner;
+	output wire [1:0] d_piece_data;
 
 	localparam H_ACTIVE = 640;
 	localparam V_ACTIVE = 480;
@@ -58,7 +64,6 @@ module connect_four_top #(ROWS=8, COLS=8) (
 	localparam PLAYER2_COLOR_G = 2'b00;
 	localparam PLAYER2_COLOR_B = 2'b00;
 
-	wire [ROWS*COLS*2-1:0] board;
 	wire [2:0] current_col;
 	wire [1:0] current_player;
 	wire game_over;
@@ -78,7 +83,6 @@ module connect_four_top #(ROWS=8, COLS=8) (
 	wire [9:0] h_count_board_offset;
 	wire [9:0] v_count_board_offset;
 
-	assign board_out = board;
 	assign current_col_out = current_col;
 
 	assign h_count_board_offset = h_count - BOARD_TOP_LEFT_X;
@@ -89,9 +93,12 @@ module connect_four_top #(ROWS=8, COLS=8) (
 	assign vga_active = (h_count < H_ACTIVE) & (v_count < V_ACTIVE);
 	assign col_idx_n = h_count_board_offset[7:5];
 	assign row_idx_n = v_count_board_offset[7:5];
-	assign col_idx = col_idx_n;
-	assign row_idx = 3'd7 - row_idx_n;
+	assign col_idx = (e_debug & read_board)? d_r_col : col_idx_n;
+	assign row_idx = (e_debug & read_board)? d_r_row : 3'd7 - row_idx_n;
 	assign player_1_turn = current_player == PLAYER1_COLOR;
+
+	assign game_over = (winner != 2'b00);
+	assign d_piece_data = piece_color;
 
 	// Generate 25MHz pixel clock
 	vga_controller vga_ctrl(
@@ -109,10 +116,12 @@ module connect_four_top #(ROWS=8, COLS=8) (
 		.move_right(move_right),
 		.move_left(move_left),
 		.drop_piece(drop_piece),
+		.top_row_read(row_idx),
+		.top_col_read(col_idx),
 		.winner(winner),
 		.port_current_col(current_col),
 		.port_current_player(current_player),
-		.board_out(board)
+		.top_data_out(piece_color)
 	);
 
 	wire [9:0] cell_center_x;

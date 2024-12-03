@@ -4,13 +4,14 @@ module connect_four (
 	move_right,
 	move_left,
 	drop_piece,
+	top_row_read,
+	top_col_read,
 	winner,
 	port_current_col,
 	port_current_player,
-	board_out
+	top_data_out
 );
 
-	parameter ROWS = 8;
 	parameter COLS = 8;
 	parameter COL_BITS = 3;
 	parameter ROW_BITS = 3;
@@ -22,12 +23,14 @@ module connect_four (
 	input move_right;
 	input move_left;
 	input drop_piece;
+	input [2:0] top_row_read;
+	input [2:0] top_col_read;
 
 	// Outputs
 	output wire [1:0] winner;
 	output wire [2:0] port_current_col;
 	output wire [1:0] port_current_player;
-	output wire [ROWS*COLS*2-1:0] board_out;
+	output wire [1:0] top_data_out;
 
 	// Player IDs
 	localparam EMPTY = 2'b00;
@@ -46,12 +49,10 @@ module connect_four (
 	reg  [ROW_BITS:0] column_counters [COLS - 1:0];
 	wire [ROW_BITS-1:0] current_row;
 	wire [ROW_BITS:0] row_to_drop;
-	wire [ROWS*COLS*2-1:0] board;
 	wire [2:0] next_col_right;
 	wire [2:0] next_col_left;
 	wire [1:0] next_player;
 	wire drop_allowed;
-	wire game_over;
 
 	// Counter for sequential synchronous reset of column counter
 	reg  [COL_BITS:0] rst_column_counter;
@@ -71,12 +72,15 @@ module connect_four (
 
 	// Board memory interface
 	reg write_to_board;
+	wire [1:0] mem_data_out;
+	wire [2:0] mem_r_row;
+	wire [2:0] mem_r_col;
 
 	// Victory checker interface
-	wire [2:0] row_to_get;
-	wire [2:0] col_to_get;
 	reg  start_checking;
 	wire done_checking;
+	wire [2:0] victory_checker_r_row;
+	wire [2:0] victory_checker_r_col;
 
 	// Check which row to drop the piece in
     assign row_to_drop = column_counters[current_col];
@@ -84,9 +88,9 @@ module connect_four (
 	assign current_row = row_to_drop[ROW_BITS-1:0];
 
 	// Assign outputs
-	assign game_over = (current_state == ST_WIN);
 	assign port_current_col = current_col;
 	assign port_current_player = current_player;
+	assign top_data_out = mem_data_out;
 
 	// Next column and player
 	assign next_col_right = (current_col == LAST_COL ? 3'b000 : current_col + 3'b001);
@@ -100,7 +104,9 @@ module connect_four (
 	assign move_to_right     = rising_move_right & ~rising_move_left;
 	assign move_to_left      = rising_move_left & ~rising_move_right;
 
-	assign board_out = board;
+	// Read from board memory
+	assign mem_r_row = current_state == ST_CHECKING_VICTORY ? victory_checker_r_row : top_row_read;
+	assign mem_r_col = current_state == ST_CHECKING_VICTORY ? victory_checker_r_col : top_col_read;
 
 	// Counter for sequential synchronous reset of column counter
 	always @(posedge clk or negedge rst_n)
@@ -200,7 +206,9 @@ module connect_four (
 		.start(start_checking),
 		.move_row(current_row),
 		.move_col(current_col),
-		.board_in(board),
+		.data_in(mem_data_out),
+		.read_row(victory_checker_r_row),
+		.read_col(victory_checker_r_col),
 		.done_checking(done_checking),
 		.winner(winner)
 	);
@@ -210,11 +218,13 @@ module connect_four (
 		.clk(clk),
 		.rst_n(rst_n),
 		.enable(1'b1),
-		.row(current_row),
-		.col(current_col),
+		.w_row(current_row),
+		.w_col(current_col),
 		.data_in(current_player),
 		.write(write_to_board),
-		.board_out(board)
+		.r_row(mem_r_row),
+		.r_col(mem_r_col),
+		.data_out(mem_data_out)
 	);
 
 endmodule
