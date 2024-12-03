@@ -4,7 +4,7 @@
 import os
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles
+from cocotb.triggers import ClockCycles, FallingEdge
 from cocotb.types import LogicArray, Range
 
 GL_TEST = os.environ.get('GATES', None) == 'yes'
@@ -14,89 +14,97 @@ MOVE_RIGHT = 0b00000101
 MOVE_LEFT  = 0b00000011
 NOT_PUSHED = 0b00000111
 
-async def push_button(dut, button, cycles):
-    """Helper function to push a button for a number of cycles"""
-    dut.ui_in.value = button
-    await ClockCycles(dut.clk, cycles)
-    dut.ui_in.value = NOT_PUSHED
+class GameDriver:
+    def __init__(self, dut):
+        clock = Clock(dut.clk, 40, units="ns")
+        cocotb.start_soon(clock.start())
+        self._dut = dut
+        self._clock = clock
 
-async def move_right(dut):
-    """Helper function to move right"""
-    await push_button(dut, MOVE_RIGHT, 3)
-    await ClockCycles(dut.clk, 1)
+    async def reset(self):
+        """Reset the game"""
+        self._dut._log.info("Reset")
+        self._dut.ena.value = 1
+        self._dut.ui_in.value = NOT_PUSHED
+        self._dut.uio_in.value = 0
+        self._dut.rst_n.value = 0
+        await ClockCycles(self._dut.clk, 10)
+        self._dut.rst_n.value = 1
 
-async def move_left(dut):
-    """Helper function to move left"""
-    await push_button(dut, MOVE_LEFT, 3)
-    await ClockCycles(dut.clk, 1)
+        # Wait for five clock cycles then stop the reset
+        await ClockCycles(self._dut.clk, 5)
+        self._dut.rst_n.value = 1
 
-async def drop_piece(dut):
-    """Helper function to drop a piece"""
-    await push_button(dut, DROP_PIECE, 3)
-    await ClockCycles(dut.clk, 1)
+        # The reset sequence should take 64 clock cycles
+        await ClockCycles(self._dut.clk, 64)
 
+    async def move_right(self):
+        """Move the piece right"""
+        self._dut.ui_in.value = MOVE_RIGHT
+        await ClockCycles(self._dut.clk, 3)
+        self._dut.ui_in.value = NOT_PUSHED
+        await ClockCycles(self._dut.clk, 1)
 
-async def make_move(dut, column):
-    """Helper function to make a move in the game"""
-    current_col = dut.user_project.game_inst.current_col
-    while current_col.value != column:
-        dut._log.info(f"Current column: {current_col}")
-        int_current_col = int(current_col.value)
-        if (int_current_col < column):
-            # Move right
-            await move_right(dut)
-        else:
-            # Move left
-            await move_left(dut)
-            
-    # Drop the piece
-    row = dut.user_project.game_inst.game.current_row.value
-    dut._log.info(f"Dropping piece in column {column}. row {int(row)}")
-    await drop_piece(dut)
-    # Wait for the piece to drop
-    await ClockCycles(dut.clk, 100)
+    async def move_left(self):
+        """Move the piece left"""
+        self._dut.ui_in.value = MOVE_LEFT
+        await ClockCycles(self._dut.clk, 3)
+        self._dut.ui_in.value = NOT_PUSHED
+        await ClockCycles(self._dut.clk, 1)
 
-def print_board(dut):
-    """Helper function to print the board"""
-    dut._log.info("Board State:")
-    board = dut.user_project.game_inst.game.board_rw_inst.board
-    for row in range(0,8):
-        row_str = ""
-        for col in range(0,8):
-            start_index = ((8 * row + (7-col)) * 2 + 1)
-            end_index = start_index - 1
-            msb = board.value[start_index]
-            lsb = board.value[end_index]
-            piece_color = msb << 1 | lsb
-            row_str += "X" if piece_color == 1 else "O" if piece_color == 2 else "."
-        dut._log.info(row_str)
+    async def drop_piece(self):
+        """Drop the piece"""
+        self._dut.ui_in.value = DROP_PIECE
+        await ClockCycles(self._dut.clk, 3)
+        self._dut.ui_in.value = NOT_PUSHED
+        await ClockCycles(self._dut.clk, 1)
+
+    async def debug_cmd(self, cmd: int, data: int):
+        self._dut.uio_in.value = ((data & 0xF) << 4) | (cmd & 0xF)
+        await ClockCycles(self._dut.clk, 1)  # Wait for the next clock cycle
+        self._dut.uio_in.value = 0
+        await FallingEdge(self._dut.clk)     # Wait for output data to become valid
+        return (self._dut.uio_out.value >> 4) & 0xF
+
+    async def make_move(self, column):
+        """Make a move in the game"""
+        current_col = self._dut.user_project.game_inst.current_col
+        while current_col.value != column:
+            int_current_col = int(current_col.value)
+            if (int_current_col < column):
+                # Move right
+                await self.move_right()
+            else:
+                # Move left
+                await self.move_left()
+                
+        # Drop the piece
+        row = self._dut.user_project.game_inst.game.current_row.value
+        await self.drop_piece()
+        # Wait for the piece to drop
+        await ClockCycles(self._dut.clk, 100)
+
+    def print_board(self):
+        """Print the board"""
+        self._dut._log.info("Board State:")
+        board = self._dut.user_project.game_inst.game.board_rw_inst.board
+        for row in range(0,8):
+            row_str = ""
+            for col in range(0,8):
+                start_index = ((8 * row + (7-col)) * 2 + 1)
+                end_index = start_index - 1
+                msb = board.value[start_index]
+                lsb = board.value[end_index]
+                piece_color = msb << 1 | lsb
+                row_str += "X" if piece_color == 1 else "O" if piece_color == 2 else "."
+            self._dut._log.info(row_str)
 
 
 @cocotb.test()
 async def test_reset(dut):
     """Test the board is empty after reset"""
-    dut._log.info("Start")
-
-    # Set the clock to 25MHz (40 ns period)
-    clock = Clock(dut.clk, 40, units="ns")
-    cocotb.start_soon(clock.start())
-
-    # Reset
-    dut._log.info("Reset")
-    dut.ena.value = 1
-    dut.ui_in.value = NOT_PUSHED
-    dut.uio_in.value = 0
-    dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
-    dut.rst_n.value = 1
-
-    # Wait for five clock cycles then stop the reset
-    await ClockCycles(dut.clk, 5)
-    dut.rst_n.value = 1
-
-    # The reset sequence should take 64 clock cycles
-    await ClockCycles(dut.clk, 64)
-
+    game = GameDriver(dut)
+    await game.reset()
 
     if not GL_TEST:
         top_board = dut.user_project.game_inst.game.board_rw_inst.board

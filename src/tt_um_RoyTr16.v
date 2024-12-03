@@ -16,12 +16,15 @@ module tt_um_RoyTr16 (
     input  wire       rst_n     // reset_n - low to reset
 );
 
+  localparam ROWS = 8;
+  localparam COLS = 8;
+
   // All output pins must be assigned. If not used, assign to 0.
   assign uio_out = 0;
   assign uio_oe  = 0;
 
   // List all unused inputs to prevent warnings
-  wire _unused = &{ena, ui_in [7:3], uio_in [7:0], 1'b0};
+  wire _unused = &{ena, ui_in [6:3], uio_in [7:0], 1'b0};
 
   // VGA output wires
   wire       hsync, vsync;
@@ -29,6 +32,10 @@ module tt_um_RoyTr16 (
 
   // Buttons
   wire move_right, move_left, drop_piece;
+
+  // Debug
+  wire [ROWS*COLS*2-1:0] board;
+  wire e_debug;
 
   assign uo_out [0] = red   [1];
   assign uo_out [1] = green [1];
@@ -43,17 +50,21 @@ module tt_um_RoyTr16 (
   assign move_right = ui_in [1];
   assign move_left  = ui_in [2];
 
+  assign e_debug = ui_in [7];
+
   connect_four_top game_inst (
     .clk_25MHz   (clk),
     .rst_n       (rst_n),
     .move_right  (move_right),
     .move_left   (move_left),
     .drop_piece  (drop_piece),
-    .vga_hsync   (hsync),  // Horizontal sync
-    .vga_vsync   (vsync),  // Vertical sync
-    .vga_r       (red),    // 4-bit Red channel
-    .vga_g       (green),  // 4-bit Green channel
-    .vga_b       (blue)    // 4-bit Blue channel
+    .e_debug     (e_debug), // Debug enable
+    .vga_hsync   (hsync),   // Horizontal sync
+    .vga_vsync   (vsync),   // Vertical sync
+    .vga_r       (red),     // 4-bit Red channel
+    .vga_g       (green),   // 4-bit Green channel
+    .vga_b       (blue),    // 4-bit Blue channel
+    .board_out   (board)    // 8x8 board
 );
 
 endmodule

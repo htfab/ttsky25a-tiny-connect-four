@@ -9,7 +9,8 @@ module connect_four (
 	data_out,
 	game_over,
 	port_current_col,
-	port_current_player
+	port_current_player,
+	board_out
 );
 
 	parameter ROWS = 8;
@@ -32,6 +33,7 @@ module connect_four (
 	output wire  game_over;
 	output wire [2:0] port_current_col;
 	output wire [1:0] port_current_player;
+	output wire [ROWS*COLS*2-1:0] board_out;
 
 	// Player IDs
 	localparam EMPTY = 2'b00;
@@ -237,7 +239,8 @@ module connect_four (
 		.write(write_to_board),
 		.drop_allowed(drop_allowed),
 		.row_to_drop(row_to_drop),
-		.data_out(mem_data)
+		.data_out(mem_data),
+		.board_out(board_out)
 	);
 
 endmodule

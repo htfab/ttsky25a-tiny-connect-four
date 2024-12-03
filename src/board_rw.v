@@ -8,7 +8,8 @@ module board_rw (
     write,
     drop_allowed,
     row_to_drop,
-    data_out
+    data_out,
+    board_out
 );
 
     localparam ROWS = 8;
@@ -26,6 +27,7 @@ module board_rw (
     output drop_allowed;
     output [3:0] row_to_drop;
     output [1:0] data_out;
+    output [ROWS*COLS*2-1:0] board_out;
 
     // 8x8 board
     reg [ROWS*COLS*2-1:0] board;
@@ -52,6 +54,7 @@ module board_rw (
 
     // Read from board
     assign data_out = enable ? board[(8*row + col)*2+:2] : 2'b00;
+    assign board_out = board;
 
     // Counter for sequential synchronous reset of column counter
 	always @(posedge clk or negedge rst_n)

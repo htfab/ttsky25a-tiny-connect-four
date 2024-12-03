@@ -1,14 +1,16 @@
-module connect_four_top (
+module connect_four_top #(ROWS=8, COLS=8) (
 	clk_25MHz,
 	rst_n,
 	move_right,
 	move_left,
 	drop_piece,
+	e_debug,
 	vga_hsync,
 	vga_vsync,
 	vga_r,
 	vga_g,
-	vga_b
+	vga_b,
+	board_out
 );
 
 	input wire clk_25MHz;
@@ -16,17 +18,17 @@ module connect_four_top (
 	input wire move_right;
 	input wire move_left;
 	input wire drop_piece;
+	input wire e_debug;
+
 	output wire vga_hsync;
 	output wire vga_vsync;
 	output reg [1:0] vga_r;
 	output reg [1:0] vga_g;
 	output reg [1:0] vga_b;
+	output wire [ROWS*COLS*2-1:0] board_out;
 
 	localparam H_ACTIVE = 640;
 	localparam V_ACTIVE = 480;
-
-	localparam ROWS = 8;
-	localparam COLS = 8;
 
 	localparam CELL_SIZE = 10'd32;
 	localparam BOARD_TOP_LEFT_X = 10'd192;
@@ -52,6 +54,7 @@ module connect_four_top (
 	localparam PLAYER2_COLOR_G = 2'b00;
 	localparam PLAYER2_COLOR_B = 2'b00;
 
+	wire [ROW*COL*2-1:0] board;
 	wire [2:0] current_col;
 	wire [1:0] current_player;
 	wire game_over;
@@ -60,6 +63,7 @@ module connect_four_top (
 	wire draw_board;
 	wire draw_cursor;
 	wire vga_active;
+
 	wire [2:0] col_idx_n;
 	wire [2:0] row_idx_n;
 	wire [2:0] col_idx;
@@ -103,7 +107,18 @@ module connect_four_top (
 		.data_out(piece_color),
 		.game_over(game_over),
 		.port_current_col(current_col),
-		.port_current_player(current_player)
+		.port_current_player(current_player),
+		.board_out(board)
+	);
+
+	debug_controller #(
+		.ROWS(ROWS), 
+		.COLS(COLS)
+	) debug_ctrl (
+		.clk(clk_25MHz),
+		.rst_n(rst_n),
+		.e_debug(e_debug),
+		.board_in(board)
 	);
 
 	wire [9:0] cell_center_x;
