@@ -5,13 +5,15 @@ import os
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, FallingEdge
+from cocotb.types import LogicArray, Range
 
 GL_TEST = os.environ.get('GATES', None) == 'yes'
 
-DROP_PIECE = 0b00000110
-MOVE_RIGHT = 0b00000101
-MOVE_LEFT  = 0b00000011
-NOT_PUSHED = 0b00000111
+DEBUG = 0b10000000
+DROP_PIECE =       0b00000110 | DEBUG
+MOVE_RIGHT =       0b00000101 | DEBUG
+MOVE_LEFT  =       0b00000011 | DEBUG
+NOT_PUSHED =       0b00000111 | DEBUG
 
 CMD_READ_BOARD = 1
 CMD_READ_CURRENT_COL = 2
@@ -33,7 +35,7 @@ class GameDriver:
         self._dut.rst_n.value = 0
         await ClockCycles(self._dut.clk, 10)
         self._dut.rst_n.value = 1
-        self._dut.ui_in[7].value = 1  # Enable debug mode
+        self._dut.ui_in.value  # Enable debug mode
 
         # Wait for five clock cycles then stop the reset
         await ClockCycles(self._dut.clk, 5)
@@ -68,7 +70,12 @@ class GameDriver:
         await ClockCycles(self._dut.clk, 1)  # Wait for the next clock cycle
         self._dut.uio_in.value = 0
         await FallingEdge(self._dut.clk)     # Wait for output data to become valid
-        return (self._dut.uio_out.value >> 2) & 0x3F
+
+        data = self._dut.uio_out.value
+        if cmd == CMD_READ_CURRENT_COL:
+            return (int(data) >> 5) & 0x7
+        elif cmd == CMD_READ_WINNER or cmd == CMD_READ_BOARD:
+            return (int(data) >> 6) & 0x3
     
     async def read_current_col(self):
         return await self.debug_cmd(CMD_READ_CURRENT_COL, 0)
@@ -141,14 +148,11 @@ async def test_move_right_and_wrap_around(dut):
     game = GameDriver(dut)
     await game.reset()
 
-    current_col = await game.read_current_col()
-    assert current_col == 0
-
     for i in range(0, 8):
-        await game.move_right()
-        await ClockCycles(dut.clk, 1)
         current_col = await game.read_current_col()
         assert current_col == i
+        await game.move_right()
+        await ClockCycles(dut.clk, 10)
 
 @cocotb.test()
 async def test_move_left_and_wrap_around(dut):
@@ -158,12 +162,14 @@ async def test_move_left_and_wrap_around(dut):
 
     current_col = await game.read_current_col()
     assert current_col == 0
+    await game.move_left()
+    await ClockCycles(dut.clk, 10)
 
-    for i in range(0, 8):
-        await game.move_left()
-        await ClockCycles(dut.clk, 1)
+    for i in range(7, -1, -1):
         current_col = await game.read_current_col()
-        assert current_col == 7 - i
+        assert current_col == i
+        await game.move_left()
+        await ClockCycles(dut.clk, 10)
 
 
 @cocotb.test()

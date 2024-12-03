@@ -38,7 +38,7 @@ module debug_controller (
     reg [7:0] data_out;
 
     assign uio_out = data_out;
-    assign uio_oe  = {{data_out_en ? 6'b111111 : 6'b000000}, 2'b00};
+    assign uio_oe  = data_out_en ? 8'b11111100 : 8'b00000000;
 
     assign d_r_row = data_in[5:3];
     assign d_r_col = data_in[2:0];
@@ -57,17 +57,17 @@ module debug_controller (
                 case (debug_cmd)
                     CMD_READ_BOARD: 
                     begin
-                        data_out <= {6'b0, piece_data};
+                        data_out <= {piece_data, 6'b0};
                         data_out_en <= 1'b1;
                     end
                     CMD_READ_CURRENT_COL:
                     begin
-                        data_out <= {5'b0, current_col};
+                        data_out <= {current_col, 5'b0};
                         data_out_en <= 1'b1;
                     end
                     CMD_READ_WINNER:
                     begin
-                        data_out <= {6'b0, winner};
+                        data_out <= {winner, 6'b0};
                         data_out_en <= 1'b1;
                     end
                     default: 
