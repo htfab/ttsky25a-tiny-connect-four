@@ -1,10 +1,13 @@
 # SPDX-FileCopyrightText: © 2024 Tiny Tapeout
 # SPDX-License-Identifier: Apache-2.0
 
+import os
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles
 from cocotb.types import LogicArray, Range
+
+GL_TEST = os.environ.get('GATES', None) == 'yes'
 
 DROP_PIECE = 0b00000110
 MOVE_RIGHT = 0b00000101
@@ -69,7 +72,7 @@ def print_board(dut):
         dut._log.info(row_str)
 
 
-@cocotb.test(skip=True)
+@cocotb.test()
 async def test_reset(dut):
     """Test the board is empty after reset"""
     dut._log.info("Start")
@@ -95,10 +98,9 @@ async def test_reset(dut):
     await ClockCycles(dut.clk, 64)
 
 
-    # The following assersion is just an example of how to check the output values.
-    # Change it to match the actual expected output of your module:
-    top_board = dut.user_project.game_inst.board
-    assert top_board.value == 0
+    if not GL_TEST:
+        top_board = dut.user_project.game_inst.game.board_rw_inst.board
+        assert top_board.value == 0
 
 
 @cocotb.test()
@@ -129,9 +131,9 @@ async def test_move_right(dut):
     # Move right
     await push_button(dut, MOVE_RIGHT, 5)
 
-    # Check the output
-    current_col = dut.user_project.game_inst.current_col
-    assert current_col.value == 1
+    if not GL_TEST:
+        current_col = dut.user_project.game_inst.current_col
+        assert current_col.value == 1
 
 
 @cocotb.test()
@@ -159,18 +161,19 @@ async def test_move_right_and_wrap_around(dut):
     # The reset sequence should take 64 clock cycles
     await ClockCycles(dut.clk, 64)
 
-    # Move right
-    current_col = dut.user_project.game_inst.current_col
+    if not GL_TEST:
+        # Move right
+        current_col = dut.user_project.game_inst.current_col
 
-    for i in range(0, 7):
+        for i in range(0, 7):
+            await push_button(dut, MOVE_RIGHT, 3)
+            await ClockCycles(dut.clk, 1)
+            assert current_col.value == i+1
+
+        # Move right and wrap around
         await push_button(dut, MOVE_RIGHT, 3)
         await ClockCycles(dut.clk, 1)
-        assert current_col.value == i+1
-
-    # Move right and wrap around
-    await push_button(dut, MOVE_RIGHT, 3)
-    await ClockCycles(dut.clk, 1)
-    assert current_col.value == 0
+        assert current_col.value == 0
 
 
 @cocotb.test()
@@ -198,15 +201,16 @@ async def test_move_left_and_wrap_around(dut):
     # The reset sequence should take 64 clock cycles
     await ClockCycles(dut.clk, 64)
 
-    # Move left
-    current_col = dut.user_project.game_inst.current_col
+    if not GL_TEST:
+        # Move left
+        current_col = dut.user_project.game_inst.current_col
 
-    assert current_col.value == 0
+        assert current_col.value == 0
 
-    for i in range(0, 8):
-        await push_button(dut, MOVE_LEFT, 3)
-        await ClockCycles(dut.clk, 1)
-        assert current_col.value == 7-i
+        for i in range(0, 8):
+            await push_button(dut, MOVE_LEFT, 3)
+            await ClockCycles(dut.clk, 1)
+            assert current_col.value == 7-i
 
 
 @cocotb.test()
@@ -234,30 +238,31 @@ async def test_vertical_win(dut):
     # The reset sequence should take 64 clock cycles
     await ClockCycles(dut.clk, 64)
 
-    game = dut.user_project.game_inst.game
-    winner = game.winner
-    game_over = game.game_over
+    if not GL_TEST:
+        game = dut.user_project.game_inst.game
+        winner = game.winner
+        game_over = game.game_over
 
-    # Play the game
-    await make_move(dut, 0)
-    assert winner.value == 0
-    await make_move(dut, 1)
-    assert winner.value == 0
-    await make_move(dut, 0)
-    assert winner.value == 0
-    await make_move(dut, 1)
-    assert winner.value == 0
-    await make_move(dut, 0)
-    assert winner.value == 0
-    await make_move(dut, 1)
-    assert winner.value == 0
-    await make_move(dut, 0) # Player 1 wins
+        # Play the game
+        await make_move(dut, 0)
+        assert winner.value == 0
+        await make_move(dut, 1)
+        assert winner.value == 0
+        await make_move(dut, 0)
+        assert winner.value == 0
+        await make_move(dut, 1)
+        assert winner.value == 0
+        await make_move(dut, 0)
+        assert winner.value == 0
+        await make_move(dut, 1)
+        assert winner.value == 0
+        await make_move(dut, 0) # Player 1 wins
 
-    print_board(dut)
+        print_board(dut)
 
-    # Check the output
-    assert winner.value == 1
-    assert game_over.value == 1
+        # Check the output
+        assert winner.value == 1
+        assert game_over.value == 1
 
 
 @cocotb.test()
@@ -284,30 +289,31 @@ async def test_double_diagonal_win(dut):
     # The reset sequence should take 64 clock cycles
     await ClockCycles(dut.clk, 64)
 
-    # Play the game
-    await make_move(dut, 0)
-    await make_move(dut, 1)
-    await make_move(dut, 1)
-    await make_move(dut, 3)
-    await make_move(dut, 4)
-    await make_move(dut, 1)
-    await make_move(dut, 3)
-    await make_move(dut, 3)
-    await make_move(dut, 3)
-    await make_move(dut, 2)
-    await make_move(dut, 1)
-    await make_move(dut, 2)
-    await make_move(dut, 2) # Player 1 wins
+    if not GL_TEST:
+        # Play the game
+        await make_move(dut, 0)
+        await make_move(dut, 1)
+        await make_move(dut, 1)
+        await make_move(dut, 3)
+        await make_move(dut, 4)
+        await make_move(dut, 1)
+        await make_move(dut, 3)
+        await make_move(dut, 3)
+        await make_move(dut, 3)
+        await make_move(dut, 2)
+        await make_move(dut, 1)
+        await make_move(dut, 2)
+        await make_move(dut, 2) # Player 1 wins
 
-    print_board(dut)
+        print_board(dut)
 
-    # Check the output
-    game = dut.user_project.game_inst.game
-    winner = game.winner
-    game_over = game.game_over
+        # Check the output
+        game = dut.user_project.game_inst.game
+        winner = game.winner
+        game_over = game.game_over
 
-    assert winner.value == 1
-    assert game_over.value == 1
+        assert winner.value == 1
+        assert game_over.value == 1
 
 
 @cocotb.test()
@@ -335,34 +341,35 @@ async def test_horizontal_win(dut):
     # The reset sequence should take 64 clock cycles
     await ClockCycles(dut.clk, 64)
 
-    game = dut.user_project.game_inst.game
-    winner = game.winner
-    game_over = game.game_over
+    if not GL_TEST:
+        game = dut.user_project.game_inst.game
+        winner = game.winner
+        game_over = game.game_over
 
-    # Play the game
-    await make_move(dut, 0)
+        # Play the game
+        await make_move(dut, 0)
 
-    assert winner.value == 0
-    assert game_over.value == 0
+        assert winner.value == 0
+        assert game_over.value == 0
 
-    await make_move(dut, 1)
-    await make_move(dut, 1)
-    await make_move(dut, 2)
-    await make_move(dut, 2)
+        await make_move(dut, 1)
+        await make_move(dut, 1)
+        await make_move(dut, 2)
+        await make_move(dut, 2)
 
-    assert winner.value == 0
-    assert game_over.value == 0
+        assert winner.value == 0
+        assert game_over.value == 0
 
-    await make_move(dut, 3)
-    await make_move(dut, 3)
-    
-    assert winner.value == 0
-    assert game_over.value == 0
+        await make_move(dut, 3)
+        await make_move(dut, 3)
+        
+        assert winner.value == 0
+        assert game_over.value == 0
 
-    await make_move(dut, 4)
+        await make_move(dut, 4)
 
-    print_board(dut)
+        print_board(dut)
 
-    # Check the output
-    assert winner.value == 2
-    assert game_over.value == 1
+        # Check the output
+        assert winner.value == 2
+        assert game_over.value == 1
