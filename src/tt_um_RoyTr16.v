@@ -20,11 +20,9 @@ module tt_um_RoyTr16 (
   localparam COLS = 8;
 
   // All output pins must be assigned. If not used, assign to 0.
-  assign uio_out = 0;
-  assign uio_oe  = 0;
 
   // List all unused inputs to prevent warnings
-  wire _unused = &{ena, ui_in [6:3], uio_in [7:0], 1'b0};
+  wire _unused = &{ena, ui_in [6:3], 1'b0};
 
   // VGA output wires
   wire       hsync, vsync;
@@ -35,7 +33,9 @@ module tt_um_RoyTr16 (
 
   // Debug
   wire [ROWS*COLS*2-1:0] board;
+  wire [2:0] current_col;
   wire e_debug;
+  wire [2:0] winner;
 
   assign uo_out [0] = red   [1];
   assign uo_out [1] = green [1];
@@ -58,13 +58,29 @@ module tt_um_RoyTr16 (
     .move_right  (move_right),
     .move_left   (move_left),
     .drop_piece  (drop_piece),
-    .e_debug     (e_debug), // Debug enable
-    .vga_hsync   (hsync),   // Horizontal sync
-    .vga_vsync   (vsync),   // Vertical sync
-    .vga_r       (red),     // 4-bit Red channel
-    .vga_g       (green),   // 4-bit Green channel
-    .vga_b       (blue),    // 4-bit Blue channel
-    .board_out   (board)    // 8x8 board
+    .e_debug     (e_debug),        // Debug enable
+    .vga_hsync   (hsync),          // Horizontal sync
+    .vga_vsync   (vsync),          // Vertical sync
+    .vga_r       (red),            // 4-bit Red channel
+    .vga_g       (green),          // 4-bit Green channel
+    .vga_b       (blue),           // 4-bit Blue channel
+    .board_out   (board),          // 8x8 board
+    .current_col_out (current_col) // Current column
 );
+
+	debug_controller #(
+		.ROWS(ROWS), 
+		.COLS(COLS)
+	) debug_ctrl (
+		.clk(clk),
+		.rst_n(rst_n),
+		.e_debug(e_debug),
+		.board_in(board),
+    .current_col(current_col),
+    .winner(winner),
+    .uio_in(uio_in),
+    .uio_out(uio_out),
+    .uio_oe(uio_oe)
+	);
 
 endmodule

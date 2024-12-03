@@ -4,10 +4,7 @@ module connect_four (
 	move_right,
 	move_left,
 	drop_piece,
-	row_read,
-	col_read,
-	data_out,
-	game_over,
+	winner,
 	port_current_col,
 	port_current_player,
 	board_out
@@ -25,12 +22,9 @@ module connect_four (
 	input move_right;
 	input move_left;
 	input drop_piece;
-	input [ROW_BITS-1:0] row_read;
-	input [COL_BITS-1:0] col_read;
 
 	// Outputs
-	output reg  [1:0] data_out;
-	output wire  game_over;
+	output wire [1:0] winner;
 	output wire [2:0] port_current_col;
 	output wire [1:0] port_current_player;
 	output wire [ROWS*COLS*2-1:0] board_out;
@@ -48,14 +42,19 @@ module connect_four (
 
 	// Game state variables
 	reg [1:0] current_player;
-	wire [ROW_BITS:0] row_to_drop;
-	reg [ROW_BITS-1:0] current_row;
 	reg  [COL_BITS-1:0] current_col;
-	wire [1:0] winner;
+	reg  [ROW_BITS:0] column_counters [COLS - 1:0];
+	wire [ROW_BITS-1:0] current_row;
+	wire [ROW_BITS:0] row_to_drop;
+	wire [ROWS*COLS*2-1:0] board;
 	wire [2:0] next_col_right;
 	wire [2:0] next_col_left;
 	wire [1:0] next_player;
 	wire drop_allowed;
+	wire game_over;
+
+	// Counter for sequential synchronous reset of column counter
+	reg  [COL_BITS:0] rst_column_counter;
 
 	// Synchronizers for input buttons
 	reg [2:0] drop_piece_sync;
@@ -71,10 +70,18 @@ module connect_four (
 	reg [1:0] current_state;
 
 	// Board memory interface
-	wire [2:0] mem_row;
-	wire [2:0] mem_col;
-	wire [1:0] mem_data;
 	reg write_to_board;
+
+	// Victory checker interface
+	wire [2:0] row_to_get;
+	wire [2:0] col_to_get;
+	reg  start_checking;
+	wire done_checking;
+
+	// Check which row to drop the piece in
+    assign row_to_drop = column_counters[current_col];
+	assign drop_allowed = row_to_drop[ROW_BITS] == 1'b0;
+	assign current_row = row_to_drop[ROW_BITS-1:0];
 
 	// Assign outputs
 	assign game_over = (current_state == ST_WIN);
@@ -93,23 +100,19 @@ module connect_four (
 	assign move_to_right     = rising_move_right & ~rising_move_left;
 	assign move_to_left      = rising_move_left & ~rising_move_right;
 
-	// Victory checker interface
-	wire [2:0] row_to_get;
-	wire [2:0] col_to_get;
-	reg  start_checking;
-	wire done_checking;
+	assign board_out = board;
 
-	// These signals are used as index inputs to read the board memory
-	assign mem_row = (current_state == ST_ADDING_PIECE ? current_row   :
-	                  current_state == ST_CHECKING_VICTORY? row_to_get :
-					  row_read);
-
-	// If we are adding a piece, we want to read the row that the piece will be dropped to
-	// mem_col is the column to drop the piece
-	// row_to_drop is the row that the piece will be dropped to
-	assign mem_col = (current_state == ST_ADDING_PIECE ? current_col   :
-	                  current_state == ST_CHECKING_VICTORY? col_to_get :
-					  col_read);
+	// Counter for sequential synchronous reset of column counter
+	always @(posedge clk or negedge rst_n)
+	begin
+		if (!rst_n)
+			rst_column_counter <= {COL_BITS+1{1'b0}};
+		else
+		begin
+			if (rst_column_counter[COL_BITS] == 1'b0)
+				rst_column_counter <= rst_column_counter + {{COL_BITS{1'b0}}, 1'b1};
+		end
+	end
 
 	// Synchronizers to detect rising edge of input from user
 	always @(posedge clk or negedge rst_n)
@@ -128,15 +131,6 @@ module connect_four (
 		end
 	end
 
-	// Output board memory data
-	always @(posedge clk or negedge rst_n)
-	begin
-		if (!rst_n)
-			data_out <= 2'b00;
-		else
-			data_out <= mem_data;
-	end
-
 	// State Machine to control the game
 	always @(posedge clk or negedge rst_n)
 	begin
@@ -148,25 +142,24 @@ module connect_four (
 			write_to_board <= 1'b0;
 		end
 		else
+		    if (rst_column_counter[COL_BITS] == 1'b0)
+            	column_counters[rst_column_counter[2:0]] <= {ROW_BITS+1{1'b0}};
+			else
 			case (current_state)
 				ST_IDLE:
-					if (rising_drop_piece)
+					if (rising_drop_piece & drop_allowed)
 					begin
 						// Write pulse to board
 						write_to_board <= 1'b1;
+						column_counters[current_col] <= column_counters[current_col] + 1;
 						current_state <= ST_ADDING_PIECE;
 					end
 				ST_ADDING_PIECE:
 				begin
 					write_to_board <= 1'b0;
-					if (drop_allowed)
-					begin
-						current_state <= ST_CHECKING_VICTORY;
-						current_player <= next_player;
-						start_checking <= 1'b1;
-					end
-					else
-						current_state <= ST_IDLE;
+					current_player <= next_player;
+					start_checking <= 1'b1;
+					current_state <= ST_CHECKING_VICTORY;
 				end
 				ST_CHECKING_VICTORY:
 				begin
@@ -184,20 +177,6 @@ module connect_four (
 				ST_WIN:
 					current_state <= ST_WIN;
 			endcase
-	end
-
-	// Current row to drop the piece
-	always @(posedge clk or negedge rst_n)
-	begin
-		if (!rst_n)
-			current_row <= 3'b000;
-
-		// If we are adding a piece, we want to read the row that the piece will be dropped to
-		// in order to be able to check victory for that index
-		else if (current_state == ST_ADDING_PIECE)
-		begin
-			current_row <= row_to_drop[ROW_BITS-1:0];
-		end
 	end
 
 	// Column to drop the piece
@@ -221,9 +200,7 @@ module connect_four (
 		.start(start_checking),
 		.move_row(current_row),
 		.move_col(current_col),
-		.data_in(mem_data),
-		.row_read(row_to_get),
-		.col_read(col_to_get),
+		.board_in(board),
 		.done_checking(done_checking),
 		.winner(winner)
 	);
@@ -233,14 +210,11 @@ module connect_four (
 		.clk(clk),
 		.rst_n(rst_n),
 		.enable(1'b1),
-		.row(mem_row),
-		.col(mem_col),
+		.row(current_row),
+		.col(current_col),
 		.data_in(current_player),
 		.write(write_to_board),
-		.drop_allowed(drop_allowed),
-		.row_to_drop(row_to_drop),
-		.data_out(mem_data),
-		.board_out(board_out)
+		.board_out(board)
 	);
 
 endmodule

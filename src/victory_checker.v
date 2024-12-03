@@ -1,12 +1,10 @@
-module victory_checker (
+module victory_checker #(ROWS=8, COLS=8) (
     clk,
     rst_n,
     start,
     move_row,
     move_col,
-    data_in,
-    row_read,
-    col_read,
+    board_in,
     done_checking,
     winner
 );
@@ -16,10 +14,8 @@ module victory_checker (
     input start;
     input [2:0] move_row;
     input [2:0] move_col;
-    input [1:0] data_in;
+    input [ROWS*COLS*2-1:0] board_in;
 
-    output [2:0] row_read;
-    output [2:0] col_read;
     output reg done_checking;
     output reg [1:0] winner;
 
@@ -89,9 +85,7 @@ module victory_checker (
         .row(move_row),
         .col(move_col),
         .direction(check_state),
-        .data_in(data_in),
-        .row_read(row_read),
-        .col_read(col_read),
+        .board_in(board_in),
         .finished_checking(checking_direction_done),
         .winner(winner_check)
     );

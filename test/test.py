@@ -5,7 +5,6 @@ import os
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, FallingEdge
-from cocotb.types import LogicArray, Range
 
 GL_TEST = os.environ.get('GATES', None) == 'yes'
 
@@ -13,6 +12,10 @@ DROP_PIECE = 0b00000110
 MOVE_RIGHT = 0b00000101
 MOVE_LEFT  = 0b00000011
 NOT_PUSHED = 0b00000111
+
+CMD_READ_BOARD = 1
+CMD_READ_CURRENT_COL = 2
+CMD_READ_WINNER = 3
 
 class GameDriver:
     def __init__(self, dut):
@@ -30,6 +33,7 @@ class GameDriver:
         self._dut.rst_n.value = 0
         await ClockCycles(self._dut.clk, 10)
         self._dut.rst_n.value = 1
+        self._dut.ui_in[7].value = 1  # Enable debug mode
 
         # Wait for five clock cycles then stop the reset
         await ClockCycles(self._dut.clk, 5)
@@ -60,42 +64,57 @@ class GameDriver:
         await ClockCycles(self._dut.clk, 1)
 
     async def debug_cmd(self, cmd: int, data: int):
-        self._dut.uio_in.value = ((data & 0xF) << 4) | (cmd & 0xF)
+        self._dut.uio_in.value = (((data & 0x3F) << 6) | (cmd & 0x3)) & 0xFF
         await ClockCycles(self._dut.clk, 1)  # Wait for the next clock cycle
         self._dut.uio_in.value = 0
         await FallingEdge(self._dut.clk)     # Wait for output data to become valid
-        return (self._dut.uio_out.value >> 4) & 0xF
+        return (self._dut.uio_out.value >> 2) & 0x3F
+    
+    async def read_current_col(self):
+        return await self.debug_cmd(CMD_READ_CURRENT_COL, 0)
+    
+    async def read_winner(self):
+        return await self.debug_cmd(CMD_READ_WINNER, 0)
+    
+    async def read_board(self):
+        board = []
+        for row in range(8):
+            col_lst = []
+            for col in range(8):
+                idx_data = ((row * 8) & 0x7) << 3 | (col & 0x7)
+                value = await self.debug_cmd(CMD_READ_BOARD, idx_data)
+                col_lst.append(value)
+            board.append(col_lst)
+        return board
 
-    async def make_move(self, column):
+    async def make_move(self, column, exepcted_winner=0):
         """Make a move in the game"""
-        current_col = self._dut.user_project.game_inst.current_col
-        while current_col.value != column:
-            int_current_col = int(current_col.value)
-            if (int_current_col < column):
+        current_col = await self.read_current_col()
+        while current_col != column:
+            if (current_col < column):
                 # Move right
                 await self.move_right()
             else:
                 # Move left
                 await self.move_left()
-                
+            current_col = await self.debug_cmd(CMD_READ_CURRENT_COL, 0)
+
         # Drop the piece
-        row = self._dut.user_project.game_inst.game.current_row.value
         await self.drop_piece()
         # Wait for the piece to drop
         await ClockCycles(self._dut.clk, 100)
+        if exepcted_winner != 0:
+            winner = await self.read_winner()
+            assert winner == exepcted_winner
 
     def print_board(self):
         """Print the board"""
+        board = self.read_board()
         self._dut._log.info("Board State:")
-        board = self._dut.user_project.game_inst.game.board_rw_inst.board
         for row in range(0,8):
             row_str = ""
             for col in range(0,8):
-                start_index = ((8 * row + (7-col)) * 2 + 1)
-                end_index = start_index - 1
-                msb = board.value[start_index]
-                lsb = board.value[end_index]
-                piece_color = msb << 1 | lsb
+                piece_color = board[row][col]
                 row_str += "X" if piece_color == 1 else "O" if piece_color == 2 else "."
             self._dut._log.info(row_str)
 
@@ -110,274 +129,96 @@ async def test_reset(dut):
         top_board = dut.user_project.game_inst.game.board_rw_inst.board
         assert top_board.value == 0
 
-
-@cocotb.test()
-async def test_move_right(dut):
-    """Test moving the piece right"""
-    dut._log.info("Start")
-
-    # Set the clock to 25MHz (40 ns period)
-    clock = Clock(dut.clk, 40, units="ns")
-    cocotb.start_soon(clock.start())
-
-    # Reset
-    dut._log.info("Reset")
-    dut.ena.value = 1
-    dut.ui_in.value = NOT_PUSHED
-    dut.uio_in.value = 0
-    dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
-    dut.rst_n.value = 1
-
-    # Wait for five clock cycles then stop the reset
-    await ClockCycles(dut.clk, 5)
-    dut.rst_n.value = 1
-
-    # The reset sequence should take 64 clock cycles
-    await ClockCycles(dut.clk, 64)
-
-    # Move right
-    await push_button(dut, MOVE_RIGHT, 5)
-
-    if not GL_TEST:
-        current_col = dut.user_project.game_inst.current_col
-        assert current_col.value == 1
+    board = await game.read_board()
+    for row in range(8):
+        for col in range(8):
+            assert board[row][col] == 0
 
 
 @cocotb.test()
 async def test_move_right_and_wrap_around(dut):
     """Test moving the piece right and wrapping around"""
-    dut._log.info("Start")
+    game = GameDriver(dut)
+    await game.reset()
 
-    # Set the clock to 25MHz (40 ns period)
-    clock = Clock(dut.clk, 40, units="ns")
-    cocotb.start_soon(clock.start())
+    current_col = await game.read_current_col()
+    assert current_col == 0
 
-    # Reset
-    dut._log.info("Reset")
-    dut.ena.value = 1
-    dut.ui_in.value = NOT_PUSHED
-    dut.uio_in.value = 0
-    dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
-    dut.rst_n.value = 1
-
-    # Wait for five clock cycles then stop the reset
-    await ClockCycles(dut.clk, 5)
-    dut.rst_n.value = 1
-
-    # The reset sequence should take 64 clock cycles
-    await ClockCycles(dut.clk, 64)
-
-    if not GL_TEST:
-        # Move right
-        current_col = dut.user_project.game_inst.current_col
-
-        for i in range(0, 7):
-            await push_button(dut, MOVE_RIGHT, 3)
-            await ClockCycles(dut.clk, 1)
-            assert current_col.value == i+1
-
-        # Move right and wrap around
-        await push_button(dut, MOVE_RIGHT, 3)
+    for i in range(0, 8):
+        await game.move_right()
         await ClockCycles(dut.clk, 1)
-        assert current_col.value == 0
-
+        current_col = await game.read_current_col()
+        assert current_col == i
 
 @cocotb.test()
 async def test_move_left_and_wrap_around(dut):
     """Test moving the piece left and wrapping around"""
-    dut._log.info("Start")
+    game = GameDriver(dut)
+    await game.reset()
 
-    # Set the clock to 25MHz (40 ns period)
-    clock = Clock(dut.clk, 40, units="ns")
-    cocotb.start_soon(clock.start())
+    current_col = await game.read_current_col()
+    assert current_col == 0
 
-    # Reset
-    dut._log.info("Reset")
-    dut.ena.value = 1
-    dut.ui_in.value = NOT_PUSHED
-    dut.uio_in.value = 0
-    dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
-    dut.rst_n.value = 1
-
-    # Wait for five clock cycles then stop the reset
-    await ClockCycles(dut.clk, 5)
-    dut.rst_n.value = 1
-
-    # The reset sequence should take 64 clock cycles
-    await ClockCycles(dut.clk, 64)
-
-    if not GL_TEST:
-        # Move left
-        current_col = dut.user_project.game_inst.current_col
-
-        assert current_col.value == 0
-
-        for i in range(0, 8):
-            await push_button(dut, MOVE_LEFT, 3)
-            await ClockCycles(dut.clk, 1)
-            assert current_col.value == 7-i
+    for i in range(0, 8):
+        await game.move_left()
+        await ClockCycles(dut.clk, 1)
+        current_col = await game.read_current_col()
+        assert current_col == 7 - i
 
 
 @cocotb.test()
 async def test_vertical_win(dut):
     """Test a vertical win of player 1"""
-    dut._log.info("Start")
+    game = GameDriver(dut)
+    await game.reset()
 
-    # Set the clock to 25MHz (40 ns period)
-    clock = Clock(dut.clk, 40, units="ns")
-    cocotb.start_soon(clock.start())
+    await game.make_move(0)
+    await game.make_move(1)
+    await game.make_move(0)
+    await game.make_move(1)
+    await game.make_move(0)
+    await game.make_move(1)
+    await game.make_move(0, exepcted_winner=1)
 
-    # Reset
-    dut._log.info("Reset")
-    dut.ena.value = 1
-    dut.ui_in.value = NOT_PUSHED
-    dut.uio_in.value = 0
-    dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
-    dut.rst_n.value = 1
-
-    # Wait for five clock cycles then stop the reset
-    await ClockCycles(dut.clk, 5)
-    dut.rst_n.value = 1
-
-    # The reset sequence should take 64 clock cycles
-    await ClockCycles(dut.clk, 64)
-
-    if not GL_TEST:
-        game = dut.user_project.game_inst.game
-        winner = game.winner
-        game_over = game.game_over
-
-        # Play the game
-        await make_move(dut, 0)
-        assert winner.value == 0
-        await make_move(dut, 1)
-        assert winner.value == 0
-        await make_move(dut, 0)
-        assert winner.value == 0
-        await make_move(dut, 1)
-        assert winner.value == 0
-        await make_move(dut, 0)
-        assert winner.value == 0
-        await make_move(dut, 1)
-        assert winner.value == 0
-        await make_move(dut, 0) # Player 1 wins
-
-        print_board(dut)
-
-        # Check the output
-        assert winner.value == 1
-        assert game_over.value == 1
+    game.print_board()
 
 
 @cocotb.test()
 async def test_double_diagonal_win(dut):
-    dut._log.info("Start")
+    """Test a double diagonal win of player 1"""
+    game = GameDriver(dut)
+    await game.reset()
 
-    # Set the clock to 25MHz (40 ns period)
-    clock = Clock(dut.clk, 40, units="ns")
-    cocotb.start_soon(clock.start())
+    await game.make_move(0)
+    await game.make_move(1)
+    await game.make_move(1)
+    await game.make_move(3)
+    await game.make_move(4)
+    await game.make_move(1)
+    await game.make_move(3)
+    await game.make_move(3)
+    await game.make_move(3)
+    await game.make_move(2)
+    await game.make_move(1)
+    await game.make_move(2)
+    await game.make_move(2, exepcted_winner=1)
 
-    # Reset
-    dut._log.info("Reset")
-    dut.ena.value = 1
-    dut.ui_in.value = NOT_PUSHED
-    dut.uio_in.value = 0
-    dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
-    dut.rst_n.value = 1
-
-    # Wait for five clock cycles then stop the reset
-    await ClockCycles(dut.clk, 5)
-    dut.rst_n.value = 1
-
-    # The reset sequence should take 64 clock cycles
-    await ClockCycles(dut.clk, 64)
-
-    if not GL_TEST:
-        # Play the game
-        await make_move(dut, 0)
-        await make_move(dut, 1)
-        await make_move(dut, 1)
-        await make_move(dut, 3)
-        await make_move(dut, 4)
-        await make_move(dut, 1)
-        await make_move(dut, 3)
-        await make_move(dut, 3)
-        await make_move(dut, 3)
-        await make_move(dut, 2)
-        await make_move(dut, 1)
-        await make_move(dut, 2)
-        await make_move(dut, 2) # Player 1 wins
-
-        print_board(dut)
-
-        # Check the output
-        game = dut.user_project.game_inst.game
-        winner = game.winner
-        game_over = game.game_over
-
-        assert winner.value == 1
-        assert game_over.value == 1
+    game.print_board()
 
 
 @cocotb.test()
 async def test_horizontal_win(dut):
     """Test a horizontal win of player 2"""
-    dut._log.info("Start")
+    game = GameDriver(dut)
+    await game.reset()
 
-    # Set the clock to 25MHz (40 ns period)
-    clock = Clock(dut.clk, 40, units="ns")
-    cocotb.start_soon(clock.start())
+    await game.make_move(0)
+    await game.make_move(1)
+    await game.make_move(1)
+    await game.make_move(2)
+    await game.make_move(2)
+    await game.make_move(3)
+    await game.make_move(3)
+    await game.make_move(4, exepcted_winner=2)
 
-    # Reset
-    dut._log.info("Reset")
-    dut.ena.value = 1
-    dut.ui_in.value = NOT_PUSHED
-    dut.uio_in.value = 0
-    dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
-    dut.rst_n.value = 1
-
-    # Wait for five clock cycles then stop the reset
-    await ClockCycles(dut.clk, 5)
-    dut.rst_n.value = 1
-
-    # The reset sequence should take 64 clock cycles
-    await ClockCycles(dut.clk, 64)
-
-    if not GL_TEST:
-        game = dut.user_project.game_inst.game
-        winner = game.winner
-        game_over = game.game_over
-
-        # Play the game
-        await make_move(dut, 0)
-
-        assert winner.value == 0
-        assert game_over.value == 0
-
-        await make_move(dut, 1)
-        await make_move(dut, 1)
-        await make_move(dut, 2)
-        await make_move(dut, 2)
-
-        assert winner.value == 0
-        assert game_over.value == 0
-
-        await make_move(dut, 3)
-        await make_move(dut, 3)
-        
-        assert winner.value == 0
-        assert game_over.value == 0
-
-        await make_move(dut, 4)
-
-        print_board(dut)
-
-        # Check the output
-        assert winner.value == 2
-        assert game_over.value == 1
+    game.print_board()

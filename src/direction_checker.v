@@ -1,13 +1,11 @@
-module direction_checker (
+module direction_checker #(ROWS=8, COLS=8) (
     clk,
     rst_n,
     start,
     row,
     col,
     direction,
-    data_in,
-    row_read,
-    col_read,
+    board_in,
     finished_checking,
     winner
 );
@@ -18,7 +16,10 @@ module direction_checker (
     input [2:0] row;
     input [2:0] col;
     input [3:0] direction;
-    input [1:0] data_in;
+    input [ROWS*COLS*2-1:0] board_in;
+
+    output reg finished_checking;
+    output reg [1:0] winner;
 
     // Direction parameters
     localparam DOWN = 4'b0001;
@@ -44,13 +45,9 @@ module direction_checker (
     localparam ST_COMPARE = 3'b101;
 
     // These are the row and column coordinates of the pieces to be checked
-    // They are output so that they can be used to read the board memory
-    // which is instantiated in the connect_four module
-    output reg [2:0] row_read;
-    output reg [2:0] col_read;
-
-    output reg finished_checking;
-    output reg [1:0] winner;
+    reg  [2:0] read_row;
+    reg  [2:0] read_col;
+    wire [1:0] piece_data;
 
     reg [2:0] current_state;
 
@@ -87,8 +84,8 @@ module direction_checker (
         if (!rst_n)
         begin
             current_state <= ST_IDLE;
-            row_read <= 3'b000;
-            col_read <= 3'b000;
+            read_row <= 3'b000;
+            read_col <= 3'b000;
             finished_checking <= 1'b0;
         end
         else
@@ -104,35 +101,35 @@ module direction_checker (
                     piece4 <= 2'b00;
                     if (start)
                     begin
-                        row_read <= row_piece_1;
-                        col_read <= col_piece_1;
+                        read_row <= row_piece_1;
+                        read_col <= col_piece_1;
                         current_state <= ST_READING_PIECE_1;
                     end
                 end
                 ST_READING_PIECE_1:
                 begin
-                        piece1 <= data_in;
-                        row_read <= row_piece_2;
-                        col_read <= col_piece_2;
+                        piece1 <= piece_data;
+                        read_row <= row_piece_2;
+                        read_col <= col_piece_2;
                         current_state <= ST_READING_PIECE_2;
                 end
                 ST_READING_PIECE_2:
                 begin
-                        piece2 <= data_in;
-                        row_read <= row_piece_3;
-                        col_read <= col_piece_3;
+                        piece2 <= piece_data;
+                        read_row <= row_piece_3;
+                        read_col <= col_piece_3;
                         current_state <= ST_READING_PIECE_3;
                 end
                 ST_READING_PIECE_3:
                 begin
-                        piece3 <= data_in;
-                        row_read <= row_piece_4;
-                        col_read <= col_piece_4;
+                        piece3 <= piece_data;
+                        read_row <= row_piece_4;
+                        read_col <= col_piece_4;
                         current_state <= ST_READING_PIECE_4;
                 end
                 ST_READING_PIECE_4:
                 begin
-                        piece4 <= data_in;
+                        piece4 <= piece_data;
                         current_state <= ST_COMPARE;
                 end
                 ST_COMPARE:
@@ -278,5 +275,12 @@ module direction_checker (
             end
         endcase
     end
+
+    board_reader #(.ROWS(ROWS), .COLS(COLS)) board_reader_direction_inst (
+        .board_in(board_in),
+        .row(read_row),
+        .col(read_col),
+        .data_out(piece_data)
+    );
 
 endmodule

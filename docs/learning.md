@@ -4,7 +4,8 @@
 
 
 ### Flow:
-- Start by forking the Verilog template, then install all of the tools required for local hardening and testing. 
+- Start by forking the Verilog template, then install all of the tools required for local hardening and testing.
+- As of writing, it seems it's best to stick to plain Verilog rather than SystemVerilog, as support is limited and problems which are difficult to debug may arise.
 - Don't try to see if the design passes GDS by pushing to Github, run it locally before.
 - Install the complete OSS CAD suite to ensure compatibility between the different tools.
 - Get help from the Discord community when stuck, they are very helpful.

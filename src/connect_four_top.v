@@ -10,7 +10,9 @@ module connect_four_top #(ROWS=8, COLS=8) (
 	vga_r,
 	vga_g,
 	vga_b,
-	board_out
+	board_out,
+	current_col_out,
+	winner
 );
 
 	input wire clk_25MHz;
@@ -26,6 +28,8 @@ module connect_four_top #(ROWS=8, COLS=8) (
 	output reg [1:0] vga_g;
 	output reg [1:0] vga_b;
 	output wire [ROWS*COLS*2-1:0] board_out;
+	output wire [2:0] current_col_out;
+	output wire [1:0] winner;
 
 	localparam H_ACTIVE = 640;
 	localparam V_ACTIVE = 480;
@@ -54,7 +58,7 @@ module connect_four_top #(ROWS=8, COLS=8) (
 	localparam PLAYER2_COLOR_G = 2'b00;
 	localparam PLAYER2_COLOR_B = 2'b00;
 
-	wire [ROW*COL*2-1:0] board;
+	wire [ROWS*COLS*2-1:0] board;
 	wire [2:0] current_col;
 	wire [1:0] current_player;
 	wire game_over;
@@ -73,6 +77,9 @@ module connect_four_top #(ROWS=8, COLS=8) (
 
 	wire [9:0] h_count_board_offset;
 	wire [9:0] v_count_board_offset;
+
+	assign board_out = board;
+	assign current_col_out = current_col;
 
 	assign h_count_board_offset = h_count - BOARD_TOP_LEFT_X;
 	assign v_count_board_offset = v_count - BOARD_TOP_LEFT_Y;
@@ -102,23 +109,10 @@ module connect_four_top #(ROWS=8, COLS=8) (
 		.move_right(move_right),
 		.move_left(move_left),
 		.drop_piece(drop_piece),
-		.row_read(row_idx),
-		.col_read(col_idx),
-		.data_out(piece_color),
-		.game_over(game_over),
+		.winner(winner),
 		.port_current_col(current_col),
 		.port_current_player(current_player),
 		.board_out(board)
-	);
-
-	debug_controller #(
-		.ROWS(ROWS), 
-		.COLS(COLS)
-	) debug_ctrl (
-		.clk(clk_25MHz),
-		.rst_n(rst_n),
-		.e_debug(e_debug),
-		.board_in(board)
 	);
 
 	wire [9:0] cell_center_x;
