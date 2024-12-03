@@ -157,7 +157,6 @@ module connect_four (
 					begin
 						// Write pulse to board
 						write_to_board <= 1'b1;
-						column_counters[current_col] <= column_counters[current_col] + 1;
 						current_state <= ST_ADDING_PIECE;
 					end
 				ST_ADDING_PIECE:
@@ -172,6 +171,7 @@ module connect_four (
 					start_checking <= 1'b0;
 					if (done_checking)
 					begin
+						column_counters[current_col] <= column_counters[current_col] + 1;
 						if (winner != EMPTY)
 							current_state <= ST_WIN;
 						else

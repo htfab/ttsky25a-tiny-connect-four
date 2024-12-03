@@ -66,7 +66,9 @@ class GameDriver:
         await ClockCycles(self._dut.clk, 1)
 
     async def debug_cmd(self, cmd: int, data: int):
-        self._dut.uio_in.value = (((data & 0x3F) << 6) | (cmd & 0x3)) & 0xFF
+        """Send a debug command to the game"""
+        uio_in = ((data & 0x3F) << 2) | (cmd & 0x3)
+        self._dut.uio_in.value = uio_in
         await ClockCycles(self._dut.clk, 1)  # Wait for the next clock cycle
         self._dut.uio_in.value = 0
         await FallingEdge(self._dut.clk)     # Wait for output data to become valid
@@ -83,15 +85,20 @@ class GameDriver:
     async def read_winner(self):
         return await self.debug_cmd(CMD_READ_WINNER, 0)
     
-    async def read_board(self):
+    async def read_piece(self, row, col):
+        idx = (row << 3) | col
+        return await self.debug_cmd(CMD_READ_BOARD, idx)
+    
+    async def read_board(self) -> list:
+        """Read the board state"""
         board = []
         for row in range(8):
-            col_lst = []
+            board_row = []
             for col in range(8):
-                idx_data = ((row * 8) & 0x7) << 3 | (col & 0x7)
-                value = await self.debug_cmd(CMD_READ_BOARD, idx_data)
-                col_lst.append(value)
-            board.append(col_lst)
+                value = await self.read_piece(row, col)
+                await ClockCycles(self._dut.clk, 1)
+                board_row.append(int(value))
+            board.append(board_row)
         return board
 
     async def make_move(self, column, exepcted_winner=0):
@@ -111,17 +118,18 @@ class GameDriver:
         # Wait for the piece to drop
         await ClockCycles(self._dut.clk, 100)
         if exepcted_winner != 0:
+            await self.print_board()
             winner = await self.read_winner()
             assert winner == exepcted_winner
 
-    def print_board(self):
+    async def print_board(self):
         """Print the board"""
-        board = self.read_board()
+        board = await self.read_board()
         self._dut._log.info("Board State:")
-        for row in range(0,8):
+        for row in range(0, 8):
             row_str = ""
             for col in range(0,8):
-                piece_color = board[row][col]
+                piece_color = board[7-row][col]
                 row_str += "X" if piece_color == 1 else "O" if piece_color == 2 else "."
             self._dut._log.info(row_str)
 
@@ -152,7 +160,7 @@ async def test_move_right_and_wrap_around(dut):
         current_col = await game.read_current_col()
         assert current_col == i
         await game.move_right()
-        await ClockCycles(dut.clk, 10)
+        await ClockCycles(dut.clk, 3)
 
 @cocotb.test()
 async def test_move_left_and_wrap_around(dut):
@@ -163,13 +171,13 @@ async def test_move_left_and_wrap_around(dut):
     current_col = await game.read_current_col()
     assert current_col == 0
     await game.move_left()
-    await ClockCycles(dut.clk, 10)
+    await ClockCycles(dut.clk, 3)
 
     for i in range(7, -1, -1):
         current_col = await game.read_current_col()
         assert current_col == i
         await game.move_left()
-        await ClockCycles(dut.clk, 10)
+        await ClockCycles(dut.clk, 3)
 
 
 @cocotb.test()
@@ -185,8 +193,6 @@ async def test_vertical_win(dut):
     await game.make_move(0)
     await game.make_move(1)
     await game.make_move(0, exepcted_winner=1)
-
-    game.print_board()
 
 
 @cocotb.test()
@@ -209,8 +215,6 @@ async def test_double_diagonal_win(dut):
     await game.make_move(2)
     await game.make_move(2, exepcted_winner=1)
 
-    game.print_board()
-
 
 @cocotb.test()
 async def test_horizontal_win(dut):
@@ -226,5 +230,3 @@ async def test_horizontal_win(dut):
     await game.make_move(3)
     await game.make_move(3)
     await game.make_move(4, exepcted_winner=2)
-
-    game.print_board()
