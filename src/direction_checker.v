@@ -9,7 +9,10 @@ module direction_checker (
     read_row,
     read_col,
     finished_checking,
-    winner
+    winner,
+    winning_row,
+    winning_col,
+    w_winning_pieces
 );
 
     input clk;
@@ -22,6 +25,9 @@ module direction_checker (
 
     output reg finished_checking;
     output reg [1:0] winner;
+    output reg [2:0] winning_row;
+    output reg [2:0] winning_col;
+    output reg w_winning_pieces;
 
     // Direction parameters
     localparam DOWN = 4'b0001;
@@ -39,18 +45,22 @@ module direction_checker (
 	localparam DIAG_LEFT_DOWN_4 = 4'b1101;
 
     // State machine parameters
-    localparam ST_IDLE = 3'b000;
-    localparam ST_READING_PIECE_1 = 3'b001;
-    localparam ST_READING_PIECE_2 = 3'b010;
-    localparam ST_READING_PIECE_3 = 3'b011;
-    localparam ST_READING_PIECE_4 = 3'b100;
-    localparam ST_COMPARE = 3'b101;
+    localparam ST_IDLE = 4'b0000;
+    localparam ST_READING_PIECE_1 = 4'b0001;
+    localparam ST_READING_PIECE_2 = 4'b0010;
+    localparam ST_READING_PIECE_3 = 4'b0011;
+    localparam ST_READING_PIECE_4 = 4'b0100;
+    localparam ST_COMPARE = 4'b101;
+    localparam ST_WRITING_WINNING_PIECE_1 = 4'b0110;
+    localparam ST_WRITING_WINNING_PIECE_2 = 4'b0111;
+    localparam ST_WRITING_WINNING_PIECE_3 = 4'b1000;
+    localparam ST_WRITING_WINNING_PIECE_4 = 4'b1001;
 
     // These are the row and column coordinates of the pieces to be checked
     output reg  [2:0] read_row;
     output reg  [2:0] read_col;
 
-    reg [2:0] current_state;
+    reg [3:0] current_state;
 
     // These are the pieces to be checked
     // They are read sequentially from the board memory
@@ -135,9 +145,39 @@ module direction_checker (
                 end
                 ST_COMPARE:
                 begin
-                    if (piece1 == piece2 & piece2 == piece3 & piece3 == piece4)
-                        winner <= piece1;
                     finished_checking <= 1'b1;
+                    if (piece1 == piece2 & piece2 == piece3 & piece3 == piece4)
+                    begin
+                        winner <= piece1;
+                        winning_row <= row_piece_1;
+                        winning_col <= col_piece_1;
+                        w_winning_pieces <= 1'b1;
+                        current_state <= ST_WRITING_WINNING_PIECE_1;
+                    end
+                    else
+                        current_state <= ST_IDLE;
+                end
+                ST_WRITING_WINNING_PIECE_1:
+                begin
+                    winning_row <= row_piece_2;
+                    winning_col <= col_piece_2;
+                    current_state <= ST_WRITING_WINNING_PIECE_2;
+                end
+                ST_WRITING_WINNING_PIECE_2:
+                begin
+                    winning_row <= row_piece_3;
+                    winning_col <= col_piece_3;
+                    current_state <= ST_WRITING_WINNING_PIECE_3;
+                end
+                ST_WRITING_WINNING_PIECE_3:
+                begin
+                    winning_row <= row_piece_4;
+                    winning_col <= col_piece_4;
+                    current_state <= ST_WRITING_WINNING_PIECE_4;
+                end
+                ST_WRITING_WINNING_PIECE_4:
+                begin
+                    w_winning_pieces <= 1'b0;
                     current_state <= ST_IDLE;
                 end
                 default:

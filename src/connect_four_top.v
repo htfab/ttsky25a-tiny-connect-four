@@ -64,6 +64,13 @@ module connect_four_top #(ROWS=8, COLS=8) (
 	localparam PLAYER2_COLOR_G = 2'b00;
 	localparam PLAYER2_COLOR_B = 2'b00;
 
+	// Winning pieces flashing counter
+	localparam FLASH_COUNTER_MAX = 24'd12500000;
+
+	// Victory and flashing pieces logic
+	reg [23:0] flash_counter;
+	reg show_winning_pieces;
+
 	wire [2:0] current_col;
 	wire [1:0] current_player;
 	wire game_over;
@@ -78,6 +85,8 @@ module connect_four_top #(ROWS=8, COLS=8) (
 	wire [2:0] col_idx;
 	wire [2:0] row_idx;
 	wire [1:0] piece_color;
+	wire winning_piece;
+	wire show_piece;
 	wire player_1_turn;
 
 	wire [9:0] h_count_board_offset;
@@ -99,6 +108,7 @@ module connect_four_top #(ROWS=8, COLS=8) (
 
 	assign game_over = (winner != 2'b00);
 	assign d_piece_data = piece_color;
+	assign show_piece = winning_piece ? show_winning_pieces : 1'b1;
 
 	// Generate 25MHz pixel clock
 	vga_controller vga_ctrl(
@@ -121,7 +131,8 @@ module connect_four_top #(ROWS=8, COLS=8) (
 		.winner(winner),
 		.port_current_col(current_col),
 		.port_current_player(current_player),
-		.top_data_out(piece_color)
+		.top_data_out(piece_color),
+		.winning_out(winning_piece)
 	);
 
 	wire [9:0] cell_center_x;
@@ -152,6 +163,26 @@ module connect_four_top #(ROWS=8, COLS=8) (
 	assign cursor_in_circle = distance_squared_cursor <= CIRCLE_RADIUS_SQUARED;
 	assign draw_circle_cursor = (draw_cursor & cursor_in_circle) & ~game_over;
 
+	// Flashing counter
+	always @(posedge clk_25MHz or negedge rst_n)
+	begin
+		if (~rst_n)
+		begin
+			flash_counter <= 24'd0;
+			show_winning_pieces <= 1'b1;
+		end
+		else if (game_over)
+		begin
+			if (flash_counter == FLASH_COUNTER_MAX)
+			begin
+				flash_counter <= 24'd0;
+				show_winning_pieces <= ~show_winning_pieces;
+			end
+			else
+				flash_counter <= flash_counter + 24'd1;
+		end
+	end
+
 	always @(*) 
 	begin
 		vga_r = 2'b00;
@@ -166,17 +197,24 @@ module connect_four_top #(ROWS=8, COLS=8) (
 			begin
 				if (cell_in_circle) 
 				begin
-					if (piece_color == PLAYER1_COLOR) 
+					if (show_piece)
+						if (piece_color == PLAYER1_COLOR) 
+						begin
+							vga_r = PLAYER1_COLOR_R;
+							vga_g = PLAYER1_COLOR_G;
+							vga_b = PLAYER1_COLOR_B;
+						end
+						else if (piece_color == PLAYER2_COLOR) 
+						begin
+							vga_r = PLAYER2_COLOR_R;
+							vga_g = PLAYER2_COLOR_G;
+							vga_b = PLAYER2_COLOR_B;
+						end
+					else
 					begin
-						vga_r = PLAYER1_COLOR_R;
-						vga_g = PLAYER1_COLOR_G;
-						vga_b = PLAYER1_COLOR_B;
-					end
-					else if (piece_color == PLAYER2_COLOR) 
-					begin
-						vga_r = PLAYER2_COLOR_R;
-						vga_g = PLAYER2_COLOR_G;
-						vga_b = PLAYER2_COLOR_B;
+						vga_r = EMPTY_COLOR_R;
+						vga_g = EMPTY_COLOR_G;
+						vga_b = EMPTY_COLOR_B;
 					end
 				end
 				else 

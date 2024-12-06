@@ -9,7 +9,8 @@ module connect_four (
 	winner,
 	port_current_col,
 	port_current_player,
-	top_data_out
+	top_data_out,
+	winning_out
 );
 
 	parameter COLS = 8;
@@ -31,6 +32,7 @@ module connect_four (
 	output wire [2:0] port_current_col;
 	output wire [1:0] port_current_player;
 	output wire [1:0] top_data_out;
+	output wire winning_out;
 
 	// Player IDs
 	localparam EMPTY = 2'b00;
@@ -82,6 +84,11 @@ module connect_four (
 	wire [2:0] victory_checker_r_row;
 	wire [2:0] victory_checker_r_col;
 
+	// Winning Pieces
+	wire [2:0] winning_row;
+	wire [2:0] winning_col;
+	wire w_winning_pieces;
+
 	// Check which row to drop the piece in
     assign row_to_drop = column_counters[current_col];
 	assign drop_allowed = row_to_drop[ROW_BITS] == 1'b0;
@@ -107,6 +114,7 @@ module connect_four (
 	// Read from board memory
 	assign mem_r_row = current_state == ST_CHECKING_VICTORY ? victory_checker_r_row : top_row_read;
 	assign mem_r_col = current_state == ST_CHECKING_VICTORY ? victory_checker_r_col : top_col_read;
+	
 
 	// Counter for sequential synchronous reset of column counter
 	always @(posedge clk or negedge rst_n)
@@ -210,7 +218,10 @@ module connect_four (
 		.read_row(victory_checker_r_row),
 		.read_col(victory_checker_r_col),
 		.done_checking(done_checking),
-		.winner(winner)
+		.winner(winner),
+		.winning_row(winning_row),
+		.winning_col(winning_col),
+		.w_winning_pieces(w_winning_pieces)
 	);
 
 	// Component to read and write to board memory
@@ -222,9 +233,13 @@ module connect_four (
 		.w_col(current_col),
 		.data_in(current_player),
 		.write(write_to_board),
+		.winning_row(winning_row),
+		.winning_col(winning_col),
+		.w_winning_pieces(w_winning_pieces),
 		.r_row(mem_r_row),
 		.r_col(mem_r_col),
-		.data_out(mem_data_out)
+		.data_out(mem_data_out),
+		.winning_out(winning_out)
 	);
 
 endmodule

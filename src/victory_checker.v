@@ -8,7 +8,10 @@ module victory_checker (
     read_row,
     read_col,
     done_checking,
-    winner
+    winner,
+    winning_row,
+    winning_col,
+    w_winning_pieces
 );
 
     input clk;
@@ -22,6 +25,9 @@ module victory_checker (
 
     output reg done_checking;
     output reg [1:0] winner;
+    output [2:0] winning_row;
+    output [2:0] winning_col;
+    output w_winning_pieces;
 
     // Victory checking states
 	localparam ST_IDLE = 4'b0000;
@@ -93,7 +99,10 @@ module victory_checker (
         .read_row(read_row),
         .read_col(read_col),
         .finished_checking(checking_direction_done),
-        .winner(winner_check)
+        .winner(winner_check),
+        .winning_row(winning_row),
+        .winning_col(winning_col),
+        .w_winning_pieces(w_winning_pieces)
     );
 
     // Check if the game is over
