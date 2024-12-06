@@ -6,14 +6,14 @@
 `default_nettype none
 
 module tt_um_RoyTr16 (
-    input  wire [7:0] ui_in,    // Dedicated inputs
-    output wire [7:0] uo_out,   // Dedicated outputs
-    input  wire [7:0] uio_in,   // IOs: Input path
-    output wire [7:0] uio_out,  // IOs: Output path
-    output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
-    input  wire       ena,      // always 1 when the design is powered, so you can ignore it
-    input  wire       clk,      // clock
-    input  wire       rst_n     // reset_n - low to reset
+    input  wire [7:0] ui_in,     // Dedicated inputs
+    output wire [7:0] uo_out,    // Dedicated outputs
+    input  wire [7:0] uio_in,    // IOs: Input path
+    output wire [7:0] uio_out,   // IOs: Output path
+    output wire [7:0] uio_oe,    // IOs: Enable path (active high: 0=input, 1=output)
+    input  wire       ena,       // always 1 when the design is powered, so you can ignore it
+    input  wire       clk, // clock
+    input  wire       rst_n      // reset_n - low to reset
 );
 
   // All output pins must be assigned. If not used, assign to 0.
@@ -26,7 +26,14 @@ module tt_um_RoyTr16 (
   wire [1:0] red, green, blue;
 
   // Buttons
-  wire move_right, move_left, drop_piece;
+  wire move_right;
+  wire move_left;
+  wire drop_piece;
+
+  // Debounced buttons
+  wire move_right_debounced;
+  wire move_left_debounced;
+  wire drop_piece_debounced;
 
   // Debug
   wire [2:0] current_col;
@@ -52,12 +59,13 @@ module tt_um_RoyTr16 (
 
   assign e_debug = ui_in [7];
 
+
   connect_four_top game_inst (
     .clk_25MHz       (clk),
     .rst_n           (rst_n),
-    .move_right      (move_right),
-    .move_left       (move_left),
-    .drop_piece      (drop_piece),
+    .move_right      (move_right_debounced),
+    .move_left       (move_left_debounced),
+    .drop_piece      (drop_piece_debounced),
     .e_debug         (e_debug),          // Debug enable
     .read_board      (read_board),       // Read board
     .d_r_row         (d_r_row),          // Debug row
@@ -70,7 +78,31 @@ module tt_um_RoyTr16 (
     .current_col_out (current_col),      // Current column
     .winner          (winner),           // Winner
     .d_piece_data    (d_piece_data)      // Debug piece data
-);
+  );
+
+  btn_debounce #(.CLKS_TO_WAIT(2500000)) btn_right_debounce_inst (
+    .clk      (clk),
+    .rst_n    (rst_n),
+    .e_debug  (e_debug),
+    .btn_in   (move_right),
+    .btn_out  (move_right_debounced)
+  );
+
+  btn_debounce #(.CLKS_TO_WAIT(2500000)) btn_left_debounce_inst (
+    .clk      (clk),
+    .rst_n    (rst_n),
+    .e_debug  (e_debug),
+    .btn_in   (move_left),
+    .btn_out  (move_left_debounced)
+  );
+
+  btn_debounce #(.CLKS_TO_WAIT(2500000)) btn_drop_debounce_inst (
+    .clk      (clk),
+    .rst_n    (rst_n),
+    .e_debug  (e_debug),
+    .btn_in   (drop_piece),
+    .btn_out  (drop_piece_debounced)
+  );
 
 	debug_controller debug_ctrl (
 		.clk(clk),

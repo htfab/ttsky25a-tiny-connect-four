@@ -27,6 +27,7 @@ project:
     - "check_directions.v"
     - "direction_checker.v"
     - "debug_controller.v"
+    - "btn_debounce.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 pinout:
