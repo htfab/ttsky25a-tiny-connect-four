@@ -2,9 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import random
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, FallingEdge
+
+from connect_four_sim import Board
 
 GL_TEST = os.environ.get('GATES', None) == 'yes'
 
@@ -129,13 +132,52 @@ class GameDriver:
     async def print_board(self):
         """Print the board"""
         board = await self.read_board()
-        self._dut._log.info("Board State:")
-        for row in range(0, 8):
-            row_str = ""
-            for col in range(0,8):
-                piece_color = board[7-row][col]
-                row_str += "X" if piece_color == 1 else "O" if piece_color == 2 else "."
-            self._dut._log.info(row_str)
+        print(Board(board))
+
+
+def generate_random_move():
+    return random.randint(0, 7)
+
+
+def compare_boards(board1: Board, board2: Board):
+    for row in range(8):
+        for col in range(8):
+            if (board1.grid[row][col] != board2.grid[row][col]):
+                print(board1)
+                print(board2)
+                raise Exception(f"Boards do not match at row: {row}, col: {col}. \
+                                  Expected: {board1.grid[row][col]}, Actual: {board2.grid[row][col]}")
+
+
+async def simulate_game(dut, output=False):
+    game = GameDriver(dut)
+    await game.reset()
+
+    sim_board = Board()
+    move = generate_random_move()
+    count = 0
+    while sim_board.winner == 0 and count < 100:
+        await game.make_move(move)
+        sim_board.make_move(move)
+
+        dut_board = Board(await game.read_board())
+
+        compare_boards(dut_board, sim_board)
+
+        hardware_winner = await game.read_winner()
+        if hardware_winner != sim_board.winner:
+            print("DUT Board:")
+            print(dut_board)
+            print("Sim Board:")
+            print(sim_board)
+            raise Exception(f"Winner mismatch. Hardware winner: {hardware_winner}, Software winner: {sim_board.winner}")
+
+        move = generate_random_move()
+        count += 1
+
+    if output:
+        print(sim_board)
+        print(f"Winner: {sim_board.winner}")
 
 
 @cocotb.test()
@@ -257,3 +299,26 @@ async def test_over_25_pieces(dut):
 
     winner = await game.read_winner()
     assert winner == 0
+
+
+@cocotb.test()
+async def test_random_moves(dut):
+    """Test random moves"""
+
+    await simulate_game(dut, output=True)
+
+
+@cocotb.test()
+async def test_random_moves_5_games(dut):
+    """Test random moves for 5 games"""
+
+    for _ in range(5):
+        await simulate_game(dut, output=True)
+
+
+@cocotb.test()
+async def test_random_moves_100_games(dut):
+    """Test random moves for 100 games"""
+
+    for _ in range(100):
+        await simulate_game(dut)
