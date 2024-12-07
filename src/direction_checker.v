@@ -81,6 +81,9 @@ module direction_checker (
     reg [2:0] row_offset [0:2];
     reg [2:0] col_offset [0:2];
 
+    // Determine if pieces are winning combination
+    wire winning_combination;
+
     // Assign coordinates using offsets
     assign row_piece_2 = row + row_offset[0];
     assign row_piece_3 = row + row_offset[1];
@@ -88,6 +91,8 @@ module direction_checker (
     assign col_piece_2 = col + col_offset[0];
     assign col_piece_3 = col + col_offset[1];
     assign col_piece_4 = col + col_offset[2];
+
+    assign winning_combination = (piece1 == piece2 & piece2 == piece3 & piece3 == piece4);
 
     // State machine for sequential reading of pieces
     always @(posedge clk or negedge rst_n)
@@ -151,7 +156,7 @@ module direction_checker (
                 end
                 ST_COMPARE:
                 begin
-                    if (piece1 == piece2 & piece2 == piece3 & piece3 == piece4)
+                    if (winning_combination)
                     begin
                         winner <= piece1;
                         winning_row <= row_piece_1;

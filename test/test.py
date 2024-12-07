@@ -246,14 +246,14 @@ async def test_over_25_pieces(dut):
         for i in range(0, 8):
             await game.make_move(i)
 
-    await game.print_board()
     for i in range(1, 8):
-        await game.print_board()
         await game.make_move(i)
 
     await game.make_move(1)
     await game.make_move(2)
     await game.make_move(3)
+    
+    await game.print_board()
 
     winner = await game.read_winner()
     assert winner == 0
