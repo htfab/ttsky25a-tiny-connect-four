@@ -5,7 +5,6 @@ import os
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, FallingEdge
-from cocotb.types import LogicArray, Range
 
 GL_TEST = os.environ.get('GATES', None) == 'yes'
 
@@ -104,13 +103,18 @@ class GameDriver:
     async def make_move(self, column, exepcted_winner=0):
         """Make a move in the game"""
         current_col = await self.read_current_col()
+        move_col_count = 0
         while current_col != column:
+            if move_col_count > 8:
+                raise Exception(f"Moved more than 8 columns and still not at the target column. Current column: {current_col}, Target column: {column}")
             if (current_col < column):
                 # Move right
                 await self.move_right()
+                move_col_count += 1
             else:
                 # Move left
                 await self.move_left()
+                move_col_count += 1
             current_col = await self.debug_cmd(CMD_READ_CURRENT_COL, 0)
 
         # Drop the piece
@@ -230,3 +234,26 @@ async def test_horizontal_win(dut):
     await game.make_move(3)
     await game.make_move(3)
     await game.make_move(4, exepcted_winner=2)
+
+
+@cocotb.test()
+async def test_over_25_pieces(dut):
+    """Test a game with over 25 moves"""
+    game = GameDriver(dut)
+    await game.reset()
+
+    for _ in range(0, 3):
+        for i in range(0, 8):
+            await game.make_move(i)
+
+    await game.print_board()
+    for i in range(1, 8):
+        await game.print_board()
+        await game.make_move(i)
+
+    await game.make_move(1)
+    await game.make_move(2)
+    await game.make_move(3)
+
+    winner = await game.read_winner()
+    assert winner == 0

@@ -266,6 +266,7 @@ module victory_checker (
                 end
                 ST_CHECKING_DIAG_LEFT_DOWN_4:
                 begin
+                    start_direction_checker <= 1'b0;
                     if (checking_direction_done | !check_diag_left_down_4)
                     begin
                         check_state <= ST_CHECKING_DONE;

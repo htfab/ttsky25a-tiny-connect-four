@@ -50,7 +50,7 @@ module direction_checker (
     localparam ST_READING_PIECE_2 = 4'b0010;
     localparam ST_READING_PIECE_3 = 4'b0011;
     localparam ST_READING_PIECE_4 = 4'b0100;
-    localparam ST_COMPARE = 4'b101;
+    localparam ST_COMPARE = 4'b0101;
     localparam ST_WRITING_WINNING_PIECE_1 = 4'b0110;
     localparam ST_WRITING_WINNING_PIECE_2 = 4'b0111;
     localparam ST_WRITING_WINNING_PIECE_3 = 4'b1000;
@@ -98,12 +98,18 @@ module direction_checker (
             read_row <= 3'b000;
             read_col <= 3'b000;
             finished_checking <= 1'b0;
+            w_winning_pieces <= 1'b0;
+            winning_row <= 3'b000;
+            winning_col <= 3'b000;
         end
         else
         begin
             case (current_state)
                 ST_IDLE:
                 begin
+                    w_winning_pieces <= 1'b0;
+                    winning_row <= 3'b000;
+                    winning_col <= 3'b000;
                     finished_checking <= 1'b0;
                     winner <= 2'b00;
                     piece1 <= 2'b00;
@@ -145,7 +151,6 @@ module direction_checker (
                 end
                 ST_COMPARE:
                 begin
-                    finished_checking <= 1'b1;
                     if (piece1 == piece2 & piece2 == piece3 & piece3 == piece4)
                     begin
                         winner <= piece1;
@@ -155,7 +160,10 @@ module direction_checker (
                         current_state <= ST_WRITING_WINNING_PIECE_1;
                     end
                     else
+                    begin
+                        finished_checking <= 1'b1;
                         current_state <= ST_IDLE;
+                    end
                 end
                 ST_WRITING_WINNING_PIECE_1:
                 begin
@@ -177,6 +185,7 @@ module direction_checker (
                 end
                 ST_WRITING_WINNING_PIECE_4:
                 begin
+                    finished_checking <= 1'b1;
                     w_winning_pieces <= 1'b0;
                     current_state <= ST_IDLE;
                 end
