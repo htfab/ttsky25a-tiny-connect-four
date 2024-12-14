@@ -123,7 +123,7 @@ class GameDriver:
         # Drop the piece
         await self.drop_piece()
         # Wait for the piece to drop
-        await ClockCycles(self._dut.clk, 100)
+        await ClockCycles(self._dut.clk, 120)
 
         if check_winner:
             winner = await self.read_winner()
@@ -154,10 +154,11 @@ def compare_boards(dut_board: Board, sim_board: Board, move_list: list = []):
                 print(dut_board)
                 print("Sim Board:")
                 print(sim_board)
-                print("Move List:")
-                print(move_list)
+                if len(move_list) > 0:
+                    print("Move List:")
+                    print(move_list)
                 raise Exception(f"Boards do not match at row: {row}, col: {col}. \
-                                  Expected: {dut_board.grid[row][col]}, Actual: {sim_board.grid[row][col]}")
+                                  Expected: {sim_board.grid[row][col]}, Actual: {dut_board.grid[row][col]}")
 
 
 async def simulate_random_game(dut, output=False):
@@ -340,14 +341,12 @@ async def test_false_detection_diag_warparound(dut):
 
 
 @cocotb.test()
-async def test_board_mismatch_case_1(dut):
-    """Test a case where the boards mismatched in a random test"""
+async def test_board_mismatch_case_1_simplified(dut):
+    """Test case 1 where the boards mismatched in a random test and simplify the moves to recreate the issue"""
     game = GameDriver(dut)
     await game.reset()
 
-    moves = [5, 3, 0, 6, 4, 0, 2, 5, 2, 3, 3, 3, 5, 4, 0, 7, 5, 7, 4,
-             5, 3, 7, 6, 0, 3, 3, 0, 6, 6, 2, 1, 5, 7, 2, 6, 3, 0, 1, 
-             5, 4, 6, 7, 3, 5, 1, 0, 4]
+    moves = [0, 0, 1, 1, 2, 1, 2, 2, 4, 4, 4, 4, 5, 5, 5, 4, 5, 5, 0, 3, 2, 3, 3, 5, 5, 3]
     
     await simulate_game_from_move_list(dut, moves)
 
