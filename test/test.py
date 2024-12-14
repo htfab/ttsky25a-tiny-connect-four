@@ -103,7 +103,7 @@ class GameDriver:
             board.append(board_row)
         return board
 
-    async def make_move(self, column, exepcted_winner=0):
+    async def make_move(self, column, exepcted_winner=0, check_winner=True):
         """Make a move in the game"""
         current_col = await self.read_current_col()
         move_col_count = 0
@@ -124,10 +124,17 @@ class GameDriver:
         await self.drop_piece()
         # Wait for the piece to drop
         await ClockCycles(self._dut.clk, 100)
-        if exepcted_winner != 0:
-            await self.print_board()
+
+        if check_winner:
             winner = await self.read_winner()
-            assert winner == exepcted_winner
+            if exepcted_winner != 0:
+                await self.print_board()
+                assert winner == exepcted_winner
+            else:
+                if winner != 0:
+                    await self.print_board()
+                    raise Exception(f"Unexpected winner: {winner}")
+
 
     async def print_board(self):
         """Print the board"""
@@ -139,26 +146,64 @@ def generate_random_move():
     return random.randint(0, 7)
 
 
-def compare_boards(board1: Board, board2: Board):
+def compare_boards(dut_board: Board, sim_board: Board, move_list: list = []):
     for row in range(8):
         for col in range(8):
-            if (board1.grid[row][col] != board2.grid[row][col]):
-                print(board1)
-                print(board2)
+            if (dut_board.grid[row][col] != sim_board.grid[row][col]):
+                print("DUT Board:")
+                print(dut_board)
+                print("Sim Board:")
+                print(sim_board)
+                print("Move List:")
+                print(move_list)
                 raise Exception(f"Boards do not match at row: {row}, col: {col}. \
-                                  Expected: {board1.grid[row][col]}, Actual: {board2.grid[row][col]}")
+                                  Expected: {dut_board.grid[row][col]}, Actual: {sim_board.grid[row][col]}")
 
 
-async def simulate_game(dut, output=False):
+async def simulate_random_game(dut, output=False):
     game = GameDriver(dut)
     await game.reset()
 
     sim_board = Board()
     move = generate_random_move()
     count = 0
+    move_list = []
     while sim_board.winner == 0 and count < 100:
-        await game.make_move(move)
+        move_list.append(move)
         sim_board.make_move(move)
+        await game.make_move(move, check_winner=False)
+
+        dut_board = Board(await game.read_board())
+
+        compare_boards(dut_board, sim_board, move_list)
+
+        hardware_winner = await game.read_winner()
+        if hardware_winner != sim_board.winner:
+            print("DUT Board:")
+            print(dut_board)
+            print("Sim Board:")
+            print(sim_board)
+            print("Move List:")
+            print(move_list)
+            raise Exception(f"Winner mismatch. Hardware winner: {hardware_winner}, Software winner: {sim_board.winner}")
+
+        move = generate_random_move()
+        count += 1
+
+    if output:
+        print(sim_board)
+        print(f"Winner: {sim_board.winner}")
+
+
+async def simulate_game_from_move_list(dut, moves: list):
+    """Simulate a game from a list of moves"""
+    game = GameDriver(dut)
+    await game.reset()
+
+    sim_board = Board()
+    for move in moves:
+        sim_board.make_move(move)
+        await game.make_move(move, check_winner=False)
 
         dut_board = Board(await game.read_board())
 
@@ -172,12 +217,8 @@ async def simulate_game(dut, output=False):
             print(sim_board)
             raise Exception(f"Winner mismatch. Hardware winner: {hardware_winner}, Software winner: {sim_board.winner}")
 
-        move = generate_random_move()
-        count += 1
-
-    if output:
-        print(sim_board)
-        print(f"Winner: {sim_board.winner}")
+    print(sim_board)
+    print(f"Winner: {sim_board.winner}")
 
 
 @cocotb.test()
@@ -279,6 +320,39 @@ async def test_horizontal_win(dut):
 
 
 @cocotb.test()
+async def test_false_detection_diag_warparound(dut):
+    """Test a false detection of a diagonal win due to wrap around doesn't count as a win"""
+    game = GameDriver(dut)
+    await game.reset()
+
+    await game.make_move(0)
+    await game.make_move(0)
+    await game.make_move(0)
+    await game.make_move(1)
+    await game.make_move(1)
+    await game.make_move(3)
+    await game.make_move(2)
+    await game.make_move(4)
+    for _ in range(0, 8):
+        await game.make_move(3)
+
+    # The game should not be won
+
+
+@cocotb.test()
+async def test_board_mismatch_case_1(dut):
+    """Test a case where the boards mismatched in a random test"""
+    game = GameDriver(dut)
+    await game.reset()
+
+    moves = [5, 3, 0, 6, 4, 0, 2, 5, 2, 3, 3, 3, 5, 4, 0, 7, 5, 7, 4,
+             5, 3, 7, 6, 0, 3, 3, 0, 6, 6, 2, 1, 5, 7, 2, 6, 3, 0, 1, 
+             5, 4, 6, 7, 3, 5, 1, 0, 4]
+    
+    await simulate_game_from_move_list(dut, moves)
+
+
+@cocotb.test()
 async def test_over_25_pieces(dut):
     """Test a game with over 25 moves"""
     game = GameDriver(dut)
@@ -305,7 +379,7 @@ async def test_over_25_pieces(dut):
 async def test_random_moves(dut):
     """Test random moves"""
 
-    await simulate_game(dut, output=True)
+    await simulate_random_game(dut, output=True)
 
 
 @cocotb.test()
@@ -313,7 +387,7 @@ async def test_random_moves_5_games(dut):
     """Test random moves for 5 games"""
 
     for _ in range(5):
-        await simulate_game(dut, output=True)
+        await simulate_random_game(dut, output=True)
 
 
 @cocotb.test()
@@ -321,4 +395,4 @@ async def test_random_moves_100_games(dut):
     """Test random moves for 100 games"""
 
     for _ in range(100):
-        await simulate_game(dut)
+        await simulate_random_game(dut)
