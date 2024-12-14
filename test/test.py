@@ -6,6 +6,7 @@ import random
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, FallingEdge
+from cocotb.regression import TestFactory
 
 from connect_four_sim import Board
 
@@ -377,21 +378,15 @@ async def test_over_25_pieces(dut):
 @cocotb.test()
 async def test_random_moves(dut):
     """Test random moves"""
-
     await simulate_random_game(dut, output=True)
 
 
 @cocotb.test()
-async def test_random_moves_5_games(dut):
-    """Test random moves for 5 games"""
-
-    for _ in range(5):
-        await simulate_random_game(dut, output=True)
+async def test_random_game_n_times(dut, n_times=1):
+    """Test random games n times"""
+    await simulate_random_game(dut)
 
 
-@cocotb.test()
-async def test_random_moves_100_games(dut):
-    """Test random moves for 100 games"""
-
-    for _ in range(100):
-        await simulate_random_game(dut)
+# tf = TestFactory(test_random_game_n_times)
+# tf.add_option("n_times", [_ for _ in range(100)])
+# tf.generate_tests()
