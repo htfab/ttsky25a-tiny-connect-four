@@ -24,8 +24,8 @@ module debug_controller (
     output wire [2:0] d_r_row;
     output wire [2:0] d_r_col;
     output wire read_board;
-    output reg [7:0] uio_out;
-    output reg [7:0] uio_oe;
+    output wire [7:0] uio_out;
+    output wire [7:0] uio_oe;
 
     localparam CMD_READ_BOARD = 1;
     localparam CMD_READ_CURRENT_COL = 2;
