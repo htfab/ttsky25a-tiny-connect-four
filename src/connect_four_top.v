@@ -13,6 +13,7 @@ module connect_four_top #(ROWS=8, COLS=8) (
 	vga_r,
 	vga_g,
 	vga_b,
+	buzzer_out,
 	current_col_out,
 	winner,
 	d_piece_data
@@ -33,6 +34,7 @@ module connect_four_top #(ROWS=8, COLS=8) (
 	output reg [1:0] vga_r;
 	output reg [1:0] vga_g;
 	output reg [1:0] vga_b;
+	output wire buzzer_out;
 	output wire [2:0] current_col_out;
 	output wire [1:0] winner;
 	output wire [1:0] d_piece_data;
@@ -132,7 +134,8 @@ module connect_four_top #(ROWS=8, COLS=8) (
 		.port_current_col(current_col),
 		.port_current_player(current_player),
 		.top_data_out(piece_color),
-		.winning_out(winning_piece)
+		.winning_out(winning_piece),
+		.buzzer_out(buzzer_out)
 	);
 
 	wire [9:0] cell_center_x;
@@ -183,28 +186,28 @@ module connect_four_top #(ROWS=8, COLS=8) (
 		end
 	end
 
-	always @(*) 
+	always @(*)
 	begin
 		vga_r = 2'b00;
 		vga_g = 2'b00;
 		vga_b = 2'b00;
-		if (vga_active) 
+		if (vga_active)
 		begin
 			vga_r = EMPTY_COLOR_R;
 			vga_g = EMPTY_COLOR_G;
 			vga_b = EMPTY_COLOR_B;
-			if (draw_board) 
+			if (draw_board)
 			begin
-				if (cell_in_circle) 
+				if (cell_in_circle)
 				begin
 					if (show_piece)
-						if (piece_color == PLAYER1_COLOR) 
+						if (piece_color == PLAYER1_COLOR)
 						begin
 							vga_r = PLAYER1_COLOR_R;
 							vga_g = PLAYER1_COLOR_G;
 							vga_b = PLAYER1_COLOR_B;
 						end
-						else if (piece_color == PLAYER2_COLOR) 
+						else if (piece_color == PLAYER2_COLOR)
 						begin
 							vga_r = PLAYER2_COLOR_R;
 							vga_g = PLAYER2_COLOR_G;
@@ -217,22 +220,22 @@ module connect_four_top #(ROWS=8, COLS=8) (
 						vga_b = EMPTY_COLOR_B;
 					end
 				end
-				else 
+				else
 				begin
 					vga_r = BOARD_COLOR_R;
 					vga_g = BOARD_COLOR_G;
 					vga_b = BOARD_COLOR_B;
 				end
 			end
-			else if (draw_circle_cursor) 
+			else if (draw_circle_cursor)
 			begin
-				if (player_1_turn) 
+				if (player_1_turn)
 				begin
 					vga_r = PLAYER1_COLOR_R;
 					vga_g = PLAYER1_COLOR_G;
 					vga_b = PLAYER1_COLOR_B;
 				end
-				else 
+				else
 				begin
 					vga_r = PLAYER2_COLOR_R;
 					vga_g = PLAYER2_COLOR_G;

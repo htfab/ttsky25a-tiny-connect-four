@@ -16,7 +16,7 @@ module tt_um_RoyTr16 (
     input  wire       rst_n      // reset_n - low to reset
 );
 
-  // All output pins must be assigned. If not used, assign to 0.
+   // All output pins must be assigned. If not used, assign to 0.
 
   // List all unused inputs to prevent warnings
   wire _unused = &{ena, ui_in [6:3], 1'b0};
@@ -24,6 +24,9 @@ module tt_um_RoyTr16 (
   // VGA output wires
   wire       hsync, vsync;
   wire [1:0] red, green, blue;
+
+  // Buzzzer
+  wire buzzer_out;
 
   // Buttons
   wire move_right;
@@ -43,6 +46,9 @@ module tt_um_RoyTr16 (
   wire read_board;
   wire [2:0] d_r_row;
   wire [2:0] d_r_col;
+  wire [7:0] d_uio_in;
+  wire [7:0] d_uio_out;
+  wire [7:0] d_uio_oe;
 
   assign uo_out [0] = red   [1];
   assign uo_out [1] = green [1];
@@ -59,6 +65,9 @@ module tt_um_RoyTr16 (
 
   assign e_debug = ui_in [7];
 
+  assign d_uio_in = uio_in;
+  assign uio_out = e_debug ? d_uio_out : {{7{1'b0}}, buzzer_out};
+  assign uio_oe = e_debug ? d_uio_oe : 8'b11111111;
 
   connect_four_top game_inst (
     .clk_25MHz       (clk),
@@ -75,6 +84,7 @@ module tt_um_RoyTr16 (
     .vga_r           (red),              // 4-bit Red channel
     .vga_g           (green),            // 4-bit Green channel
     .vga_b           (blue),             // 4-bit Blue channel
+    .buzzer_out      (buzzer_out),       // Buzzer
     .current_col_out (current_col),      // Current column
     .winner          (winner),           // Winner
     .d_piece_data    (d_piece_data)      // Debug piece data
@@ -114,9 +124,9 @@ module tt_um_RoyTr16 (
     .d_r_row(d_r_row),
     .d_r_col(d_r_col),
     .read_board(read_board),
-    .uio_in(uio_in),
-    .uio_out(uio_out),
-    .uio_oe(uio_oe)
+    .uio_in(d_uio_in),
+    .uio_out(d_uio_out),
+    .uio_oe(d_uio_oe)
 	);
 
 endmodule

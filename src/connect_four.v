@@ -10,7 +10,8 @@ module connect_four (
 	port_current_col,
 	port_current_player,
 	top_data_out,
-	winning_out
+	winning_out,
+	buzzer_out
 );
 
 	parameter COLS = 8;
@@ -33,6 +34,7 @@ module connect_four (
 	output wire [1:0] port_current_player;
 	output wire [1:0] top_data_out;
 	output wire winning_out;
+	output wire buzzer_out;
 
 	// Player IDs
 	localparam EMPTY = 2'b00;
@@ -44,6 +46,12 @@ module connect_four (
 	localparam ST_ADDING_PIECE = 2'b01;
 	localparam ST_CHECKING_VICTORY = 2'b10;
 	localparam ST_WIN = 2'b11;
+
+	// Game sound types
+	localparam SOUND_TYPE_START = 2'b00;
+  localparam SOUND_TYPE_DROP = 2'b01;
+  localparam SOUND_TYPE_ERROR = 2'b10;
+  localparam SOUND_TYPE_VICTORY = 2'b11;
 
 	// Game state variables
 	reg [1:0] current_player;
@@ -89,6 +97,10 @@ module connect_four (
 	wire [2:0] winning_col;
 	wire w_winning_pieces;
 
+	// Game sounds
+	reg [1:0] game_sound_type;
+	reg start_game_sound;
+
 	// Check which row to drop the piece in
     assign row_to_drop = column_counters[current_col];
 	assign drop_allowed = row_to_drop[ROW_BITS] == 1'b0;
@@ -114,7 +126,6 @@ module connect_four (
 	// Read from board memory
 	assign mem_r_row = current_state == ST_CHECKING_VICTORY ? victory_checker_r_row : top_row_read;
 	assign mem_r_col = current_state == ST_CHECKING_VICTORY ? victory_checker_r_col : top_col_read;
-	
 
 	// Counter for sequential synchronous reset of column counter
 	always @(posedge clk or negedge rst_n)
@@ -154,6 +165,8 @@ module connect_four (
 			current_player <= PLAYER1;
 			start_checking <= 1'b0;
 			write_to_board <= 1'b0;
+			start_game_sound <= 1'b1;
+			game_sound_type <= SOUND_TYPE_START;
 		end
 		else
 		    if (rst_column_counter[COL_BITS] == 1'b0)
@@ -161,12 +174,24 @@ module connect_four (
 			else
 			case (current_state)
 				ST_IDLE:
-					if (rising_drop_piece & drop_allowed)
+				begin
+					if (rising_drop_piece)
 					begin
-						// Write pulse to board
-						write_to_board <= 1'b1;
-						current_state <= ST_ADDING_PIECE;
+						if (drop_allowed)
+						begin
+							// Write pulse to board
+							write_to_board <= 1'b1;
+							current_state <= ST_ADDING_PIECE;
+						end
+						else
+						begin
+							start_game_sound <= 1'b1;
+							game_sound_type <= SOUND_TYPE_ERROR;
+						end
 					end
+					else
+						start_game_sound <= 1'b0;
+				end
 				ST_ADDING_PIECE:
 				begin
 					write_to_board <= 1'b0;
@@ -181,15 +206,29 @@ module connect_four (
 					begin
 						column_counters[current_col] <= column_counters[current_col] + 1;
 						if (winner != EMPTY)
+						begin
+							start_game_sound <= 1'b1;
+							game_sound_type <= SOUND_TYPE_VICTORY;
 							current_state <= ST_WIN;
+						end
 						else
+						begin
+							start_game_sound <= 1'b1;
+							game_sound_type <= SOUND_TYPE_DROP;
 							current_state <= ST_IDLE;
+						end
 					end
 					else
+					begin
 						current_state <= ST_CHECKING_VICTORY;
+						start_game_sound <= 1'b0;
+					end
 				end
 				ST_WIN:
+				begin
 					current_state <= ST_WIN;
+					start_game_sound <= 1'b0;
+				end
 			endcase
 	end
 
@@ -240,6 +279,14 @@ module connect_four (
 		.r_col(mem_r_col),
 		.data_out(mem_data_out),
 		.winning_out(winning_out)
+	);
+
+	game_sounds game_sounds_inst (
+		.clk(clk),
+		.rst_n(rst_n),
+		.start(start_game_sound),
+		.type(game_sound_type),
+		.buzzer(buzzer_out)
 	);
 
 endmodule
