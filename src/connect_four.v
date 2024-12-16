@@ -285,7 +285,7 @@ module connect_four (
 		.clk(clk),
 		.rst_n(rst_n),
 		.start(start_game_sound),
-		.type(game_sound_type),
+		.sound_type(game_sound_type),
 		.buzzer(buzzer_out)
 	);
 

@@ -2,19 +2,19 @@ module game_sounds (
   clk,
   rst_n,
   start,
-  type,
+  sound_type,
   buzzer
 );
 
   input wire clk;
   input wire rst_n;
   input wire start;
-  input wire [1:0] type;
+  input wire [1:0] sound_type;
   output wire buzzer;
 
   localparam CLK_FREQ = 50_000_000;
-  localparam DURATION_SHORT = 2_000_000; // 40ms
-  localparam DURATION_LONG = 5_000_000; // 100ms
+  localparam DURATION_SHORT = CLK_FREQ / 25; // 40ms
+  localparam DURATION_LONG = CLK_FREQ / 10; // 100ms
 
   localparam ST_IDLE = 1'b0;
   localparam ST_PLAY = 1'b1;
@@ -29,7 +29,6 @@ module game_sounds (
   localparam NOTE_E6 = 1319;
   localparam NOTE_F6 = 1397;
   localparam NOTE_G6 = 1568;
-  localparam NOTE_A6 = 1760;
   localparam NOTE_B6 = 1976;
   localparam NOTE_C7 = 2093;
   localparam NOTE_G5 = 784;
@@ -85,15 +84,15 @@ module game_sounds (
 
   assign start_pressed = start_sync[2] & ~start_sync[1];
 
-  assign n_notes = (type == TYPE_START) ? N_START_TONES :
-                   (type == TYPE_DROP) ? N_DROP_TONES :
-                   (type == TYPE_ERROR) ? N_ERROR_TONES :
-                   (type == TYPE_VICTORY) ? N_VICTORY_TONES : 0;
+  assign n_notes = (sound_type == TYPE_START) ? N_START_TONES :
+                   (sound_type == TYPE_DROP) ? N_DROP_TONES :
+                   (sound_type == TYPE_ERROR) ? N_ERROR_TONES :
+                   (sound_type == TYPE_VICTORY) ? N_VICTORY_TONES : 0;
 
-  assign note_duration = (type == TYPE_START) ? DURATION_LONG :
-                         (type == TYPE_DROP) ? DURATION_SHORT :
-                         (type == TYPE_ERROR) ? DURATION_LONG :
-                         (type == TYPE_VICTORY) ? DURATION_LONG : 0;
+  assign note_duration = (sound_type == TYPE_START) ? DURATION_LONG :
+                         (sound_type == TYPE_DROP) ? DURATION_SHORT :
+                         (sound_type == TYPE_ERROR) ? DURATION_LONG :
+                         (sound_type == TYPE_VICTORY) ? DURATION_LONG : 0;
 
   assign play_sound = (state == ST_PLAY);
 
@@ -127,13 +126,13 @@ module game_sounds (
         end
         ST_PLAY:
         begin
-          if (type == TYPE_START)
-            note <= START_TONES[note_index];
-          else if (type == TYPE_DROP)
-            note <= DROP_TONES[note_index];
-          else if (type == TYPE_ERROR)
-            note <= ERROR_TONES[note_index];
-          else if (type == TYPE_VICTORY)
+          if (sound_type == TYPE_START)
+            note <= START_TONES[note_index[1:0]];
+          else if (sound_type == TYPE_DROP)
+            note <= DROP_TONES[note_index[0]];
+          else if (sound_type == TYPE_ERROR)
+            note <= ERROR_TONES[note_index[0]];
+          else if (sound_type == TYPE_VICTORY)
             note <= VICTORY_TONES[note_index];
 
           if (duration_counter == 0)
