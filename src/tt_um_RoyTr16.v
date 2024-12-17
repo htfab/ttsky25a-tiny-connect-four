@@ -16,7 +16,7 @@ module tt_um_RoyTr16 (
     input  wire       rst_n      // reset_n - low to reset
 );
 
-   // All output pins must be assigned. If not used, assign to 0.
+  // All output pins must be assigned. If not used, assign to 0.
 
   // List all unused inputs to prevent warnings
   wire _unused = &{ena, ui_in [6:3], 1'b0};
@@ -90,28 +90,15 @@ module tt_um_RoyTr16 (
     .d_piece_data    (d_piece_data)      // Debug piece data
   );
 
-  btn_debounce #(.CLKS_TO_WAIT(2500000)) btn_right_debounce_inst (
+  btn_debounce #(
+    .CLKS_TO_WAIT(2500000),
+    .N_BUTTONS(3)
+  ) btn_right_debounce_inst (
     .clk      (clk),
     .rst_n    (rst_n),
     .e_debug  (e_debug),
-    .btn_in   (move_right),
-    .btn_out  (move_right_debounced)
-  );
-
-  btn_debounce #(.CLKS_TO_WAIT(2500000)) btn_left_debounce_inst (
-    .clk      (clk),
-    .rst_n    (rst_n),
-    .e_debug  (e_debug),
-    .btn_in   (move_left),
-    .btn_out  (move_left_debounced)
-  );
-
-  btn_debounce #(.CLKS_TO_WAIT(2500000)) btn_drop_debounce_inst (
-    .clk      (clk),
-    .rst_n    (rst_n),
-    .e_debug  (e_debug),
-    .btn_in   (drop_piece),
-    .btn_out  (drop_piece_debounced)
+    .btns_in   ({move_right, move_left, drop_piece}),
+    .btns_out  ({move_right_debounced, move_left_debounced, drop_piece_debounced})
   );
 
 	debug_controller debug_ctrl (

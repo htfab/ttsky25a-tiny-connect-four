@@ -64,9 +64,6 @@ module connect_four (
 	wire [1:0] next_player;
 	wire drop_allowed;
 
-	// Counter for sequential synchronous reset of column counter
-	reg  [COL_BITS:0] rst_column_counter;
-
 	// Synchronizers for input buttons
 	reg [2:0] drop_piece_sync;
 	reg [2:0] move_right_sync;
@@ -127,17 +124,6 @@ module connect_four (
 	assign mem_r_row = current_state == ST_CHECKING_VICTORY ? victory_checker_r_row : top_row_read;
 	assign mem_r_col = current_state == ST_CHECKING_VICTORY ? victory_checker_r_col : top_col_read;
 
-	// Counter for sequential synchronous reset of column counter
-	always @(posedge clk or negedge rst_n)
-	begin
-		if (!rst_n)
-			rst_column_counter <= {COL_BITS+1{1'b0}};
-		else
-		begin
-			if (rst_column_counter[COL_BITS] == 1'b0)
-				rst_column_counter <= rst_column_counter + {{COL_BITS{1'b0}}, 1'b1};
-		end
-	end
 
 	// Synchronizers to detect rising edge of input from user
 	always @(posedge clk or negedge rst_n)
@@ -167,11 +153,17 @@ module connect_four (
 			write_to_board <= 1'b0;
 			start_game_sound <= 1'b1;
 			game_sound_type <= SOUND_TYPE_START;
+
+			column_counters[0] <= 4'b0000;
+			column_counters[1] <= 4'b0000;
+			column_counters[2] <= 4'b0000;
+			column_counters[3] <= 4'b0000;
+			column_counters[4] <= 4'b0000;
+			column_counters[5] <= 4'b0000;
+			column_counters[6] <= 4'b0000;
+			column_counters[7] <= 4'b0000;
 		end
 		else
-		    if (rst_column_counter[COL_BITS] == 1'b0)
-            	column_counters[rst_column_counter[2:0]] <= {ROW_BITS+1{1'b0}};
-			else
 			case (current_state)
 				ST_IDLE:
 				begin
@@ -268,8 +260,8 @@ module connect_four (
 		.clk(clk),
 		.rst_n(rst_n),
 		.enable(1'b1),
-		.w_row(current_row),
-		.w_col(current_col),
+		.w_drop_row(current_row),
+		.w_drop_col(current_col),
 		.data_in(current_player),
 		.write(write_to_board),
 		.winning_row(winning_row),
@@ -277,6 +269,7 @@ module connect_four (
 		.w_winning_pieces(w_winning_pieces),
 		.r_row(mem_r_row),
 		.r_col(mem_r_col),
+		.winner(winner),
 		.data_out(mem_data_out),
 		.winning_out(winning_out)
 	);
