@@ -12,7 +12,7 @@ module btn_debounce #(CLKS_TO_WAIT=25000, N_BUTTONS=3) (
   input  [N_BUTTONS-1:0] btns_in;
   output [N_BUTTONS-1:0] btns_out;
 
-  localparam WIDTH = $clog2(CLKS_TO_WAIT)+1;
+  localparam WIDTH = $clog2(CLKS_TO_WAIT);
 
   localparam ST_IDLE = 1'b0;
   localparam ST_COUNTING = 1'b1;
@@ -26,7 +26,7 @@ module btn_debounce #(CLKS_TO_WAIT=25000, N_BUTTONS=3) (
   reg  debounce_state;
   wire btn_pushed;
 
-  assign btns_out = e_debug ? btns_in : debounced;
+  assign btns_out = debounced;
   assign btn_pushed = button_sync_2 == {N_BUTTONS{1'b1}} & button_sync_1 != {N_BUTTONS{1'b1}};
 
   // Synchronize the button input to the clock domain to avoid metastability
@@ -53,6 +53,7 @@ module btn_debounce #(CLKS_TO_WAIT=25000, N_BUTTONS=3) (
     begin
       debounce_counter <= {WIDTH{1'b0}};
       debounced <= {N_BUTTONS{1'b1}};
+      debounce_state <= ST_IDLE;
     end
     else
     begin
@@ -73,9 +74,14 @@ module btn_debounce #(CLKS_TO_WAIT=25000, N_BUTTONS=3) (
         ST_COUNTING:
         begin
           debounced <= {N_BUTTONS{1'b1}};
-          debounce_counter <= debounce_counter + 1;
-          if (debounce_counter == CLKS_TO_WAIT)
+          if (e_debug)
             debounce_state <= ST_IDLE;
+          else
+          begin
+            debounce_counter <= debounce_counter + 1;
+            if (debounce_counter == CLKS_TO_WAIT)
+              debounce_state <= ST_IDLE;
+          end
         end
       endcase
     end
