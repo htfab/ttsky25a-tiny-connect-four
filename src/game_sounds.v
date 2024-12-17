@@ -12,9 +12,11 @@ module game_sounds (
   input wire [1:0] sound_type;
   output wire buzzer;
 
-  localparam CLK_FREQ = 50_000_000;
+  localparam CLK_FREQ = 25_000_000;
   localparam DURATION_SHORT = CLK_FREQ / 25; // 40ms
   localparam DURATION_LONG = CLK_FREQ / 10; // 100ms
+
+  localparam DURATION_COUNTER_BITS = $clog2(DURATION_LONG);
 
   localparam ST_IDLE = 1'b0;
   localparam ST_PLAY = 1'b1;
@@ -24,38 +26,38 @@ module game_sounds (
   localparam TYPE_ERROR = 2'b10;
   localparam TYPE_VICTORY = 2'b11;
 
-  localparam NOTE_C6 = 1047;
-  localparam NOTE_D6 = 1175;
-  localparam NOTE_E6 = 1319;
-  localparam NOTE_F6 = 1397;
-  localparam NOTE_G6 = 1568;
-  localparam NOTE_B6 = 1976;
-  localparam NOTE_C7 = 2093;
-  localparam NOTE_G5 = 784;
+  localparam NOTE_C6 = 1;
+  localparam NOTE_D6 = 2;
+  localparam NOTE_E6 = 3;
+  localparam NOTE_F6 = 4;
+  localparam NOTE_G6 = 5;
+  localparam NOTE_B6 = 6;
+  localparam NOTE_C7 = 7;
+  localparam NOTE_G5 = 8;
 
-  localparam NOTE_F4 = 349;
-  localparam NOTE_B3 = 247;
+  localparam NOTE_F4 = 9;
+  localparam NOTE_B3 = 10;
 
   localparam N_START_TONES = 4;
   localparam N_DROP_TONES = 2;
   localparam N_ERROR_TONES = 2;
   localparam N_VICTORY_TONES = 13;
 
-  wire [13:0] START_TONES [0:3];
+  wire [3:0] START_TONES [0:3];
   assign START_TONES[0] = NOTE_C6;
   assign START_TONES[1] = NOTE_E6;
   assign START_TONES[2] = NOTE_G6;
   assign START_TONES[3] = NOTE_C7;
 
-  wire [13:0] DROP_TONES [0:1];
+  wire [3:0] DROP_TONES [0:1];
   assign DROP_TONES[0] = NOTE_G6;
   assign DROP_TONES[1] = NOTE_C7;
 
-  wire [13:0] ERROR_TONES [0:1];
+  wire [3:0] ERROR_TONES [0:1];
   assign ERROR_TONES[0] = NOTE_F4;
   assign ERROR_TONES[1] = NOTE_B3;
 
-  wire [13:0] VICTORY_TONES [0:12];
+  wire [3:0] VICTORY_TONES [0:12];
   assign VICTORY_TONES[0] = NOTE_C6;
   assign VICTORY_TONES[1] = NOTE_G5;
   assign VICTORY_TONES[2] = NOTE_E6;
@@ -74,12 +76,12 @@ module game_sounds (
   wire start_pressed;
 
   reg [3:0] note_index;
-  reg [31:0] duration_counter; // Needs to count up to DURATION
-  reg [13:0] note;
+  reg [DURATION_COUNTER_BITS-1:0] duration_counter; // Needs to count up to DURATION
+  reg [3:0] note;
 
   reg state;
   wire [3:0] n_notes;
-  wire [31:0] note_duration;
+  wire [DURATION_COUNTER_BITS-1:0] note_duration;
   wire play_sound;
 
   assign start_pressed = start_sync[2] & ~start_sync[1];
@@ -109,7 +111,7 @@ module game_sounds (
     if (!rst_n)
     begin
       state <= ST_IDLE;
-      duration_counter <= 32'd0;
+      duration_counter <= {DURATION_COUNTER_BITS{1'b0}};
       note_index <= 4'd0;
     end
     else
@@ -127,11 +129,11 @@ module game_sounds (
         ST_PLAY:
         begin
           if (sound_type == TYPE_START)
-            note <= START_TONES[note_index[1:0]];
+            note <= START_TONES[note_index];
           else if (sound_type == TYPE_DROP)
-            note <= DROP_TONES[note_index[0]];
+            note <= DROP_TONES[note_index];
           else if (sound_type == TYPE_ERROR)
-            note <= ERROR_TONES[note_index[0]];
+            note <= ERROR_TONES[note_index];
           else if (sound_type == TYPE_VICTORY)
             note <= VICTORY_TONES[note_index];
 
