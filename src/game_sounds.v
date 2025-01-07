@@ -15,8 +15,10 @@ module game_sounds (
   localparam DURATION_COUNTER_BITS = $clog2(CLK_FREQ / 10);
 
   localparam CLK_FREQ = 25_000_000;
-  localparam DURATION_SHORT = DURATION_COUNTER_BITS'(CLK_FREQ / 25); // 40ms
-  localparam DURATION_LONG  = DURATION_COUNTER_BITS'(CLK_FREQ / 10); // 100ms
+  localparam DURATION_SHORT = (CLK_FREQ / 25);
+  localparam DURATION_SHORT_SLICED = DURATION_SHORT[DURATION_COUNTER_BITS-1:0]; // 40ms
+  localparam DURATION_LONG  = (CLK_FREQ / 10); // 100ms
+  localparam DURATION_LONG_SLICED = DURATION_LONG[DURATION_COUNTER_BITS-1:0]; // 100ms
 
   localparam ST_IDLE = 1'b0;
   localparam ST_PLAY = 1'b1;
@@ -91,10 +93,10 @@ module game_sounds (
                    (sound_type == TYPE_ERROR) ? N_ERROR_TONES :
                    (sound_type == TYPE_VICTORY) ? N_VICTORY_TONES : 0;
 
-  assign note_duration = (sound_type == TYPE_START) ? DURATION_LONG :
-                         (sound_type == TYPE_DROP) ? DURATION_SHORT :
-                         (sound_type == TYPE_ERROR) ? DURATION_LONG :
-                         (sound_type == TYPE_VICTORY) ? DURATION_LONG : 0;
+  assign note_duration = (sound_type == TYPE_START) ? DURATION_LONG_SLICED :
+                         (sound_type == TYPE_DROP) ? DURATION_SHORT_SLICED :
+                         (sound_type == TYPE_ERROR) ? DURATION_LONG_SLICED :
+                         (sound_type == TYPE_VICTORY) ? DURATION_LONG_SLICED : 0;
 
   assign play_sound = (state == ST_PLAY);
 
