@@ -7,6 +7,8 @@ module buzzer (
 );
 
   localparam CLK_FREQ = 25_000_000;
+  localparam HIGHEST_NOTE_CLKS = (CLK_FREQ / (NOTE_B3_FREQ*2)) - 1;
+  localparam COUNTER_BITS = $clog2(HIGHEST_NOTE_CLKS);
 
   // Note definitions
   localparam NOTE_C6 = 1;
@@ -43,26 +45,22 @@ module buzzer (
   localparam NOTE_B6_CLKS = (CLK_FREQ / (NOTE_B6_FREQ*2)) - 1;
   localparam NOTE_C7_CLKS = (CLK_FREQ / (NOTE_C7_FREQ*2)) - 1;
   localparam NOTE_G5_CLKS = (CLK_FREQ / (NOTE_G5_FREQ*2)) - 1;
-
   localparam NOTE_F4_CLKS = (CLK_FREQ / (NOTE_F4_FREQ*2)) - 1;
   localparam NOTE_B3_CLKS = (CLK_FREQ / (NOTE_B3_FREQ*2)) - 1;
-
-  localparam HIGHEST_NOTE_CLKS = NOTE_B3_CLKS;
-  localparam COUNTER_BITS = $clog2(HIGHEST_NOTE_CLKS);
 
   reg [COUNTER_BITS-1:0] counter; // needs to count up to a maximum of 25MHz / (note * 2)
   wire [COUNTER_BITS-1:0] threshold;
 
-  assign threshold = note == NOTE_C6 ? NOTE_C6_CLKS :
-                     note == NOTE_D6 ? NOTE_D6_CLKS :
-                     note == NOTE_E6 ? NOTE_E6_CLKS :
-                     note == NOTE_F6 ? NOTE_F6_CLKS :
-                     note == NOTE_G6 ? NOTE_G6_CLKS :
-                     note == NOTE_B6 ? NOTE_B6_CLKS :
-                     note == NOTE_C7 ? NOTE_C7_CLKS :
-                     note == NOTE_G5 ? NOTE_G5_CLKS :
-                     note == NOTE_F4 ? NOTE_F4_CLKS :
-                     note == NOTE_B3 ? NOTE_B3_CLKS :
+  assign threshold = note == NOTE_C6 ? NOTE_C6_CLKS[COUNTER_BITS-1:0] :
+                     note == NOTE_D6 ? NOTE_D6_CLKS[COUNTER_BITS-1:0] :
+                     note == NOTE_E6 ? NOTE_E6_CLKS[COUNTER_BITS-1:0] :
+                     note == NOTE_F6 ? NOTE_F6_CLKS[COUNTER_BITS-1:0] :
+                     note == NOTE_G6 ? NOTE_G6_CLKS[COUNTER_BITS-1:0] :
+                     note == NOTE_B6 ? NOTE_B6_CLKS[COUNTER_BITS-1:0] :
+                     note == NOTE_C7 ? NOTE_C7_CLKS[COUNTER_BITS-1:0] :
+                     note == NOTE_G5 ? NOTE_G5_CLKS[COUNTER_BITS-1:0] :
+                     note == NOTE_F4 ? NOTE_F4_CLKS[COUNTER_BITS-1:0] :
+                     note == NOTE_B3 ? NOTE_B3_CLKS[COUNTER_BITS-1:0] :
                      {COUNTER_BITS{1'b0}};
 
   always @(posedge clk or negedge rst_n) begin
