@@ -7,6 +7,8 @@ module buzzer (
 );
 
   localparam CLK_FREQ = 25_000_000;
+  localparam HIGHEST_NOTE_CLKS = (CLK_FREQ / (NOTE_B3_FREQ*2)) - 1;
+  localparam COUNTER_BITS = $clog2(HIGHEST_NOTE_CLKS);
 
   // Note definitions
   localparam NOTE_C6 = 1;
@@ -35,20 +37,17 @@ module buzzer (
   localparam NOTE_B3_FREQ = 247;
 
   // CLKs per note
-  localparam NOTE_C6_CLKS = (CLK_FREQ / (NOTE_C6_FREQ*2)) - 1;
-  localparam NOTE_D6_CLKS = (CLK_FREQ / (NOTE_D6_FREQ*2)) - 1;
-  localparam NOTE_E6_CLKS = (CLK_FREQ / (NOTE_E6_FREQ*2)) - 1;
-  localparam NOTE_F6_CLKS = (CLK_FREQ / (NOTE_F6_FREQ*2)) - 1;
-  localparam NOTE_G6_CLKS = (CLK_FREQ / (NOTE_G6_FREQ*2)) - 1;
-  localparam NOTE_B6_CLKS = (CLK_FREQ / (NOTE_B6_FREQ*2)) - 1;
-  localparam NOTE_C7_CLKS = (CLK_FREQ / (NOTE_C7_FREQ*2)) - 1;
-  localparam NOTE_G5_CLKS = (CLK_FREQ / (NOTE_G5_FREQ*2)) - 1;
+  localparam NOTE_C6_CLKS = COUNTER_BITS'((CLK_FREQ / (NOTE_C6_FREQ*2)) - 1);
+  localparam NOTE_D6_CLKS = COUNTER_BITS'((CLK_FREQ / (NOTE_D6_FREQ*2)) - 1);
+  localparam NOTE_E6_CLKS = COUNTER_BITS'((CLK_FREQ / (NOTE_E6_FREQ*2)) - 1);
+  localparam NOTE_F6_CLKS = COUNTER_BITS'((CLK_FREQ / (NOTE_F6_FREQ*2)) - 1);
+  localparam NOTE_G6_CLKS = COUNTER_BITS'((CLK_FREQ / (NOTE_G6_FREQ*2)) - 1);
+  localparam NOTE_B6_CLKS = COUNTER_BITS'((CLK_FREQ / (NOTE_B6_FREQ*2)) - 1);
+  localparam NOTE_C7_CLKS = COUNTER_BITS'((CLK_FREQ / (NOTE_C7_FREQ*2)) - 1);
+  localparam NOTE_G5_CLKS = COUNTER_BITS'((CLK_FREQ / (NOTE_G5_FREQ*2)) - 1);
 
-  localparam NOTE_F4_CLKS = (CLK_FREQ / (NOTE_F4_FREQ*2)) - 1;
-  localparam NOTE_B3_CLKS = (CLK_FREQ / (NOTE_B3_FREQ*2)) - 1;
-
-  localparam HIGHEST_NOTE_CLKS = NOTE_B3_CLKS;
-  localparam COUNTER_BITS = $clog2(HIGHEST_NOTE_CLKS);
+  localparam NOTE_F4_CLKS = COUNTER_BITS'((CLK_FREQ / (NOTE_F4_FREQ*2)) - 1);
+  localparam NOTE_B3_CLKS = COUNTER_BITS'((CLK_FREQ / (NOTE_B3_FREQ*2)) - 1);
 
   reg [COUNTER_BITS-1:0] counter; // needs to count up to a maximum of 25MHz / (note * 2)
   wire [COUNTER_BITS-1:0] threshold;

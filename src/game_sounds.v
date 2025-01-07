@@ -12,11 +12,11 @@ module game_sounds (
   input wire [1:0] sound_type;
   output wire buzzer;
 
-  localparam CLK_FREQ = 25_000_000;
-  localparam DURATION_SHORT = CLK_FREQ / 25; // 40ms
-  localparam DURATION_LONG = CLK_FREQ / 10; // 100ms
+  localparam DURATION_COUNTER_BITS = $clog2(CLK_FREQ / 10);
 
-  localparam DURATION_COUNTER_BITS = $clog2(DURATION_LONG);
+  localparam CLK_FREQ = 25_000_000;
+  localparam DURATION_SHORT = DURATION_COUNTER_BITS'(CLK_FREQ / 25); // 40ms
+  localparam DURATION_LONG  = DURATION_COUNTER_BITS'(CLK_FREQ / 10); // 100ms
 
   localparam ST_IDLE = 1'b0;
   localparam ST_PLAY = 1'b1;
@@ -129,11 +129,11 @@ module game_sounds (
         ST_PLAY:
         begin
           if (sound_type == TYPE_START)
-            note <= START_TONES[note_index];
+            note <= START_TONES[note_index[1:0]];
           else if (sound_type == TYPE_DROP)
-            note <= DROP_TONES[note_index];
+            note <= DROP_TONES[note_index[0]];
           else if (sound_type == TYPE_ERROR)
-            note <= ERROR_TONES[note_index];
+            note <= ERROR_TONES[note_index[0]];
           else if (sound_type == TYPE_VICTORY)
             note <= VICTORY_TONES[note_index];
 
