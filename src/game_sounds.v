@@ -12,9 +12,10 @@ module game_sounds (
   input wire [1:0] sound_type;
   output wire buzzer;
 
-  localparam DURATION_COUNTER_BITS = $clog2(CLK_FREQ / 10);
 
   localparam CLK_FREQ = 25_000_000;
+  localparam DURATION_COUNTER_BITS = $clog2(CLK_FREQ / 10);
+
   localparam DURATION_SHORT = (CLK_FREQ / 25);
   localparam DURATION_SHORT_SLICED = DURATION_SHORT[DURATION_COUNTER_BITS-1:0]; // 40ms
   localparam DURATION_LONG  = (CLK_FREQ / 10); // 100ms

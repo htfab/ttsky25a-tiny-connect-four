@@ -6,6 +6,8 @@ module buzzer (
   output reg buzzer_out    // Buzzer output signal
 );
 
+  localparam NOTE_B3_FREQ = 247;
+
   localparam CLK_FREQ = 25_000_000;
   localparam HIGHEST_NOTE_CLKS = (CLK_FREQ / (NOTE_B3_FREQ*2)) - 1;
   localparam COUNTER_BITS = $clog2(HIGHEST_NOTE_CLKS);
@@ -34,7 +36,7 @@ module buzzer (
   localparam NOTE_G5_FREQ = 784;
 
   localparam NOTE_F4_FREQ = 349;
-  localparam NOTE_B3_FREQ = 247;
+  
 
   // CLKs per note
   localparam NOTE_C6_CLKS = (CLK_FREQ / (NOTE_C6_FREQ*2)) - 1;
