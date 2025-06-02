@@ -47,12 +47,12 @@ Responsible for checking whether the game has ended due to one of the players ha
 Responsible for checking which directions need to be examined to see whether they contain a winning combination. This module is required because for example say we want to check for a winning combination that is to the left of the tile which a piece was just added to, if we are at the left edge of the board, we would wrap around to the other side of the board and read incorrect data, causing false positives. This components ensures only directions which have the ability to cause a victory are examined.
 
 #### `direction_checker.v`
-Responsible for checking whether a specific direction has a winning combination. Receives as an input a tile index and a direction, as well as start signal. After the start signal, the module outputs sequentially the indices of the tiles in the relevant direction, reads them from `board_rw`, and stores them. Then, it checks whether the contents of the tiles are identical and not empty. If they are, the player who's pieces are in the winning combination is set to be the winner of the game.
+Responsible for checking whether a specific direction has a winning combination. Receives as an input a tile index and a direction, as well as start signal. After the start signal, the module outputs sequentially the indices of the tiles in the relevant direction, reads them from `board_rw`, and stores them. Then, it checks whether the contents of the tiles are identical and not empty. If they are, the player whose pieces are in the winning combination is set to be the winner of the game.
 
 
 ## How to test
 
-Connect the external hardware according to the specified pinout, and play the connect four game. The floating piece cursor above the board represents the column which the piece will be dropped to. There is one key for moving the cursor left, one for moving it right, and one for dropping the piece. The game end when one player has 4 consecutive pieces vertically, horizontally, or diagonally.
+Connect the external hardware according to the specified pinout, and play the connect four game. The floating piece cursor above the board represents the column which the piece will be dropped to. There is one key for moving the cursor left, one for moving it right, and one for dropping the piece. The game ends when one player has 4 consecutive pieces vertically, horizontally, or diagonally.
 
 ## External hardware
 
