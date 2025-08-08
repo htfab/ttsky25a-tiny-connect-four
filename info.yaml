@@ -30,6 +30,7 @@ project:
     - "btn_debounce.v"
     - "buzzer.v"
     - "game_sounds.v"
+    - "pwrup_synchronizer.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 pinout:
