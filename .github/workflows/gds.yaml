@@ -16,7 +16,8 @@ jobs:
       - name: Build GDS
         uses: TinyTapeout/tt-gds-action@ttsky25a
         with:
-          flow: openlane2
+          pdk: sky130
+          tools-ref: ttsky25a
 
   precheck:
     needs: gds
@@ -24,6 +25,9 @@ jobs:
     steps:
       - name: Run Tiny Tapeout Precheck
         uses: TinyTapeout/tt-gds-action/precheck@ttsky25a
+        with:
+          pdk: sky130
+          tools-ref: ttsky25a
 
   gl_test:
     needs: gds
@@ -36,6 +40,8 @@ jobs:
 
       - name: GL test
         uses: TinyTapeout/tt-gds-action/gl_test@ttsky25a
+        with:
+          pdk: sky130
 
   viewer:
     needs: gds
@@ -45,3 +51,5 @@ jobs:
       id-token: write   # to verify the deployment originates from an appropriate source
     steps:
       - uses: TinyTapeout/tt-gds-action/viewer@ttsky25a
+        with:
+          pdk: sky130
