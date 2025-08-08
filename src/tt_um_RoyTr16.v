@@ -28,7 +28,7 @@ module tt_um_RoyTr16 (
   wire       hsync, vsync;
   wire [1:0] red, green, blue;
 
-  // Buzzzer
+  // Buzzer
   wire buzzer_out;
 
   // Buttons
